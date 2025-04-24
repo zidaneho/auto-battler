@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+      "baseUrl": ".",         // Root directory
+      "paths": {
+        "@/*": ["./*"]        // @/ resolves to root-level folders
+      }
+    },
+    "include": ["next-env.d.ts", "**/*.js", "**/*.jsx"],
+    "exclude": ["node_modules"]
+  }
+  
