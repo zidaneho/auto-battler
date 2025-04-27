@@ -1,8 +1,8 @@
-import { Component } from "@/components/ecs/Component";
+import { GameComponent } from "@/components/ecs/GameComponent";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import * as THREE from "three";
 
-export class SkinInstance extends Component {
+export class SkinInstance extends GameComponent {
   constructor(gameObject, model) {
     super(gameObject);
     this.model = model;

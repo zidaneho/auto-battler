@@ -17,7 +17,7 @@ export class FiniteStateMachine {
         newState.enter.call(this);
       }
     }
-    update() {
+    update(delta) {
       const state = this.states[this.currentState];
       if (state.update) {
         state.update.call(this);

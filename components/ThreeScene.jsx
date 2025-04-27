@@ -8,17 +8,38 @@ import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { models } from "@/components/ModelList";
 import { GameObjectManager } from "@/components/ecs/GameObjectManager";
 import { Unit } from "@/components/Unit";
+import * as RAPIER from "@dimforge/rapier3d";
 
 export const ThreeScene = () => {
   const containerRef = useRef(null);
+  const worldRef = useRef(null);
+  const bodyRef = useRef(null);
+
   const globals = {
     time: 0,
     deltaTime: 0,
+    gravity :-9.81,
   };
   const gameObjectManager = new GameObjectManager();
 
   useEffect(() => {
     if (!containerRef.current) return;
+
+    //setup physics
+    async function setupPhysics() {
+      const gravity = { x: 0.0, y: -9.81, z: 0.0 };
+      globals.gravity = gravity;
+      const world = new RAPIER.World(gravity);
+      worldRef.current = world;
+
+      // Setup Rapier body
+      const bodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(0, 5, 0);
+      const body = world.createRigidBody(bodyDesc);
+      const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5);
+      world.createCollider(colliderDesc, body);
+      bodyRef.current = body;
+    }
+    setupPhysics();
 
     // === Scene Setup ===
     const scene = new THREE.Scene();
@@ -77,19 +98,25 @@ export const ThreeScene = () => {
 
     // === Animation Loop ===
     //DO NOT REMOVE THIS. WE NEED THIS TO RENDER THE SCENE
-
     const mixerInfos = [];
     const clock = new THREE.Clock();
     const render = () => {
       requestAnimationFrame(render);
+
+      if (worldRef.current) {
+        worldRef.current.step();
+      }
       const delta = clock.getDelta();
       globals.time += delta;
+
       //delta time should not be more than 1/20th of a second.
       globals.deltaTime = Math.min(delta, 1 / 20);
 
+      //we are able to move the camera around with this
       controls.update();
-      renderer.render(scene, camera);
+
       gameObjectManager.update(globals.deltaTime);
+      renderer.render(scene, camera);
     };
     render();
 
@@ -150,7 +177,7 @@ export const ThreeScene = () => {
             scene,
             "knight"
           );
-          gameObject.addComponent(Unit);
+          gameObject.addComponent(Unit, models.knight1, worldRef.current);
         }
       }
     }

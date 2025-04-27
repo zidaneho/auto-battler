@@ -16,4 +16,5 @@ export class GameObjectManager {
   update(delta) {
     this.gameObjects.forEach((gameObject) => gameObject.update(delta));
   }
+  
 }
