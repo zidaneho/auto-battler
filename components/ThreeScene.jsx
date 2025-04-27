@@ -5,9 +5,17 @@ import * as THREE from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
+import { models } from "@/components/ModelList";
+import { GameObjectManager } from "@/components/ecs/GameObjectManager";
+import { Unit } from "@/components/Unit";
 
 export const ThreeScene = () => {
   const containerRef = useRef(null);
+  const globals = {
+    time: 0,
+    deltaTime: 0,
+  };
+  const gameObjectManager = new GameObjectManager();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -24,6 +32,7 @@ export const ThreeScene = () => {
       1000
     );
     camera.position.z = 5;
+    camera.position.y = 2;
 
     // === Renderer ===
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -34,14 +43,28 @@ export const ThreeScene = () => {
     containerRef.current.appendChild(renderer.domElement);
 
     // === Add Objects ===
-    const geometry = new THREE.PlaneGeometry(1, 1);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0xffff00,
-      side: THREE.DoubleSide,
-    });
-    const plane = new THREE.Mesh(geometry, material);
-    plane.rotation.x = Math.PI / 2;
-    scene.add(plane);
+    {
+      //Ground Plane
+      const ground_texture = new THREE.TextureLoader().load("/checker.png");
+      ground_texture.wrapS = THREE.RepeatWrapping;
+      ground_texture.wrapT = THREE.RepeatWrapping;
+      const sizeX = 10;
+      const sizeY = 10;
+      const sizeZ = 10;
+      ground_texture.repeat.set(sizeX, sizeY); // Tiles it 10x10 across the surface
+      ground_texture.magFilter = THREE.NearestFilter;
+      const ground_mat = new THREE.MeshBasicMaterial({
+        map: ground_texture,
+        side: THREE.DoubleSide,
+      });
+
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const plane = new THREE.Mesh(geometry, ground_mat);
+      plane.rotation.x = Math.PI / 2;
+      plane.scale.set(sizeX, sizeY, sizeZ);
+      scene.add(plane);
+    }
+
     load_gltf();
 
     // === Lights ===
@@ -54,17 +77,19 @@ export const ThreeScene = () => {
 
     // === Animation Loop ===
     //DO NOT REMOVE THIS. WE NEED THIS TO RENDER THE SCENE
-    const mixers = [];
+
+    const mixerInfos = [];
     const clock = new THREE.Clock();
     const render = () => {
       requestAnimationFrame(render);
       const delta = clock.getDelta();
+      globals.time += delta;
+      //delta time should not be more than 1/20th of a second.
+      globals.deltaTime = Math.min(delta, 1 / 20);
 
       controls.update();
       renderer.render(scene, camera);
-      for (const mixer of mixers) {
-        mixer.update(delta);
-      }
+      gameObjectManager.update(globals.deltaTime);
     };
     render();
 
@@ -81,10 +106,16 @@ export const ThreeScene = () => {
     };
     window.addEventListener("resize", handleResize);
 
+    //plays next animation for particular models (1-8 keys)
+    window.addEventListener("keydown", (e) => {
+      const mixerInfo = mixerInfos[e.keyCode - 49];
+      if (!mixerInfo) {
+        return;
+      }
+      playNextAction(mixerInfo);
+    });
+
     function load_gltf() {
-      const models = {
-        archer1: { url: "/models/gltf/archer/TT_Archer.glb" },
-      };
       const loadingManager = new THREE.LoadingManager();
       loadingManager.onLoad = init;
       const loader = new GLTFLoader(loadingManager);
@@ -103,29 +134,24 @@ export const ThreeScene = () => {
 
       function prepModelsAndAnimations() {
         Object.values(models).forEach((model) => {
+          console.log("------->:", model.url);
           const animsByName = {};
           model.gltf.animations.forEach((clip) => {
             animsByName[clip.name] = clip;
+            console.log("  ", clip.name);
           });
           model.animations = animsByName;
         });
       }
       function init() {
         prepModelsAndAnimations();
-
-        Object.values(models).forEach((model, ndx) => {
-          const clonedScene = SkeletonUtils.clone(model.gltf.scene);
-          const root = new THREE.Object3D();
-          root.add(clonedScene);
-          scene.add(root);
-          root.position.x = ndx - 1;
-
-          const mixer = new THREE.AnimationMixer(clonedScene);
-          const firstClip = Object.values(model.animations)[0];
-          const action = mixer.clipAction(firstClip);
-          action.play();
-          mixers.push(mixer);
-        });
+        {
+          const gameObject = gameObjectManager.createGameObject(
+            scene,
+            "knight"
+          );
+          gameObject.addComponent(Unit);
+        }
       }
     }
 
