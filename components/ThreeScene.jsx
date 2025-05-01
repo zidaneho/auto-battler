@@ -4,11 +4,16 @@ import React, { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { models } from "@/components/ModelList";
 import { GameObjectManager } from "@/components/ecs/GameObjectManager";
 import { Unit } from "@/components/Unit";
 import * as RAPIER from "@dimforge/rapier3d";
+import { GroundMesh } from "./GroundMesh";
+import { StaticBody } from "./StaticBody";
+import { BoxCollider } from "./BoxCollider";
+import { Vector3, vector3_distance } from "./ecs/Vector3";
+import { UnitManager } from "./UnitManager";
+import { Rigidbody } from "./Rigidbody";
 
 export const ThreeScene = () => {
   const containerRef = useRef(null);
@@ -18,9 +23,11 @@ export const ThreeScene = () => {
   const globals = {
     time: 0,
     deltaTime: 0,
-    gravity :-9.81,
+    gravity: -9.81,
   };
+
   const gameObjectManager = new GameObjectManager();
+  const unitManager = new UnitManager();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -65,32 +72,26 @@ export const ThreeScene = () => {
 
     // === Add Objects ===
     {
-      //Ground Plane
-      const ground_texture = new THREE.TextureLoader().load("/checker.png");
-      ground_texture.wrapS = THREE.RepeatWrapping;
-      ground_texture.wrapT = THREE.RepeatWrapping;
-      const sizeX = 10;
-      const sizeY = 10;
-      const sizeZ = 10;
-      ground_texture.repeat.set(sizeX, sizeY); // Tiles it 10x10 across the surface
-      ground_texture.magFilter = THREE.NearestFilter;
-      const ground_mat = new THREE.MeshBasicMaterial({
-        map: ground_texture,
-        side: THREE.DoubleSide,
-      });
-
-      const geometry = new THREE.PlaneGeometry(1, 1);
-      const plane = new THREE.Mesh(geometry, ground_mat);
-      plane.rotation.x = Math.PI / 2;
-      plane.scale.set(sizeX, sizeY, sizeZ);
-      scene.add(plane);
+      const gameObject = gameObjectManager.createGameObject(scene, "ground");
+      const width = 10;
+      const depth = 10;
+      gameObject.transform.position.set(0, -0.5, 0);
+      gameObject.addComponent(GroundMesh, width, 1, depth);
+      const collider = gameObject.addComponent(BoxCollider, width, 1, depth);
+      const staticBody = gameObject.addComponent(
+        StaticBody,
+        worldRef.current,
+        collider.description
+      );
     }
 
     load_gltf();
 
     // === Lights ===
     const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(2, 2, 5);
+
+    light.target.position.set(0, 0, 0); // Pointing at the ground (origin)
+    light.intensity = 10;
     scene.add(light);
 
     // === Controls ===
@@ -114,8 +115,14 @@ export const ThreeScene = () => {
 
       //we are able to move the camera around with this
       controls.update();
+      light.position.set(
+        camera.position.x,
+        camera.position.y,
+        camera.position.z
+      ); // Up high above the scene
 
       gameObjectManager.update(globals.deltaTime);
+      unitManager.update(globals.deltaTime)
       renderer.render(scene, camera);
     };
     render();
@@ -173,11 +180,32 @@ export const ThreeScene = () => {
       function init() {
         prepModelsAndAnimations();
         {
-          const gameObject = gameObjectManager.createGameObject(
+          const offset = new Vector3(0, 0.8, 0);
+          unitManager.createUnit(
+            gameObjectManager,
             scene,
-            "knight"
+            "knight1",
+            models.knight1,
+            worldRef.current,
+            offset,
+            new Vector3(0.4, 0.8, 0.4),
+            1
           );
-          gameObject.addComponent(Unit, models.knight1, worldRef.current);
+        }
+        {
+          const offset = new Vector3(0, 0.8, 0);
+          const gameObject = unitManager.createUnit(
+            gameObjectManager,
+            scene,
+            "knight2",
+            models.knight1,
+            worldRef.current,
+            offset,
+            new Vector3(0.4, 0.8, 0.4),
+            2
+          );
+          const rigidbody = gameObject.getComponent(Rigidbody);
+          rigidbody.setPosition(new Vector3(4, 0, 0));
         }
       }
     }

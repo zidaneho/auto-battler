@@ -1,5 +1,5 @@
-import {SafeArray} from "@/components/ecs/SafeArray"
-import {GameObject} from "@/components/ecs/GameObject"
+import { SafeArray } from "@/components/ecs/SafeArray";
+import { GameObject } from "@/components/ecs/GameObject";
 
 export class GameObjectManager {
   constructor() {
@@ -16,5 +16,4 @@ export class GameObjectManager {
   update(delta) {
     this.gameObjects.forEach((gameObject) => gameObject.update(delta));
   }
-  
 }

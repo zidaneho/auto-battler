@@ -25,6 +25,17 @@ export class GameObject {
   getComponent(ComponentType) {
     return this.components.find((c) => c instanceof ComponentType);
   }
+  setPosition(vector3) {
+    this.transform.position.set(vector3.x,vector3.y,vector3.z);
+  }
+  move(vector3) {
+    const pos = transform.position;
+    this.transform.position.set(
+      pos.x + vector3.x,
+      pos.y + vector3.y,
+      pos.z + vector3.z
+    );
+  }
   update(delta) {
     for (const component of this.components) {
       component.update(delta);
