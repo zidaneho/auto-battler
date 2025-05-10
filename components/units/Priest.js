@@ -1,6 +1,7 @@
 import { Unit } from "./Unit";
 import * as THREE from "three";
 import { FiniteStateMachine } from "../FiniteStateMachine";
+import { HealthComponent } from "../HealthComponent";
 
 export class Priest extends Unit {
   constructor(gameObject, model, teamId) {
@@ -100,7 +101,21 @@ export class Priest extends Unit {
       target.healthComponent.heal(this.unitStats.healingPower);
     }
   }
-  
+  //Override canHaveTarget to allow healing allies
+  canHaveTarget(otherUnit) {
+    //Priests can target allies who need healing or enemies
+    if (
+      this.teamId === otherUnit.teamId &&
+      otherUnit.healthComponent.health < otherUnit.healthComponent.maxHealth
+    ) {
+      return true;
+    }
+    return (
+      otherUnit !== this &&
+      this.teamId !== otherUnit.teamId &&
+      otherUnit.healthComponent.health > 0
+    );
+  }
 
   update(delta) {
     super.update(delta);

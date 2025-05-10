@@ -11,6 +11,7 @@ import { CollisionComponent } from "../physics/CollisionComponent";
 import { HealthComponent } from "../HealthComponent";
 import { Archer } from "./Archer";
 import { UnitStats } from "./UnitStats";
+import { Priest } from "./Priest";
 
 export class UnitManager {
   constructor() {
@@ -69,6 +70,30 @@ export class UnitManager {
       projectileManager,
       projectileSpawnPoint
     );
+
+    this.units.add(unit);
+    return gameObject;
+  }
+  createPriest(
+    gameObjectManager,
+    parent,
+    name,
+    model,
+    physics_world,
+    collider_offset,
+    colliderSize,
+    teamId
+  ) {
+    const gameObject = this.setupUnit(
+      gameObjectManager,
+      parent,
+      name,
+      physics_world,
+      collider_offset,
+      colliderSize
+    );
+
+    const unit = gameObject.addComponent(Priest, model, teamId);
 
     this.units.add(unit);
     return gameObject;

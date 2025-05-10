@@ -239,6 +239,22 @@ export const ThreeScene = () => {
           const rigidbody = gameObject.getComponent(CharacterRigidbody);
           rigidbody.setPosition(new Vector3(-4, 0, 4));
         }
+        // Add Priest here:
+        {
+          const offset = new Vector3(0, 0.8, 0);
+          const gameObject = unitManager.createPriest(
+            gameObjectManager,
+            scene,
+            "priest1",
+            models.priest1,
+            worldRef.current,
+            offset,
+            new Vector3(0.4, 1.5, 0.4),
+            1
+          );
+          const rigidbody = gameObject.getComponent(CharacterRigidbody);
+          rigidbody.setPosition(new Vector3(4, 0, -4));
+        }
       }
     }
 
