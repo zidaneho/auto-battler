@@ -1,4 +1,4 @@
-import { GameComponent } from "./ecs/GameComponent";
+import { GameComponent } from "../ecs/GameComponent";
 import * as RAPIER from "@dimforge/rapier3d";
 
 export class StaticBody extends GameComponent {
@@ -15,8 +15,6 @@ export class StaticBody extends GameComponent {
 
     physics_world.createCollider(colliderDesc, body);
   }
-
-  
 
   update(delta) {
     const pos = this.body.translation();

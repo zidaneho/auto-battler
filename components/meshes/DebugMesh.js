@@ -1,4 +1,4 @@
-import { GameComponent } from "./ecs/GameComponent";
+import { GameComponent } from "../ecs/GameComponent";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
 
@@ -55,6 +55,19 @@ export class DebugMesh extends GameComponent {
       const rotation = this.bodyComponent.body.rotation();
       this.mesh.position.set(translation.x, translation.y, translation.z);
       this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
+    }
+  }
+  destroy() {
+    if (this.mesh) {
+      this.mesh.geometry?.dispose();
+      if (Array.isArray(this.mesh.material)) {
+        this.mesh.material.forEach((m) => m.dispose());
+      } else {
+        this.mesh.material?.dispose();
+      }
+
+      this.mesh.parent?.remove(this.mesh);
+      this.mesh = null;
     }
   }
 }

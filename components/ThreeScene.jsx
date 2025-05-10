@@ -4,16 +4,16 @@ import React, { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { DRACOLoader, GLTFLoader } from "three/examples/jsm/Addons.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { models } from "@/components/ModelList";
+import { models } from "@/components/meshes/ModelList";
 import { GameObjectManager } from "@/components/ecs/GameObjectManager";
-import { Unit } from "@/components/Unit";
 import * as RAPIER from "@dimforge/rapier3d";
-import { GroundMesh } from "./GroundMesh";
-import { StaticBody } from "./StaticBody";
-import { BoxCollider } from "./BoxCollider";
+import { GroundMesh } from "./meshes/GroundMesh";
+import { StaticBody } from "./physics/StaticBody";
+import { BoxCollider } from "./physics/BoxCollider";
 import { Vector3, vector3_distance } from "./ecs/Vector3";
-import { UnitManager } from "./UnitManager";
-import { Rigidbody } from "./Rigidbody";
+import { UnitManager } from "./units/UnitManager";
+import { CharacterRigidbody } from "./physics/CharacterRigidbody";
+import { ProjectileManager } from "./projectiles/ProjectileManager";
 
 export const ThreeScene = () => {
   const containerRef = useRef(null);
@@ -25,9 +25,6 @@ export const ThreeScene = () => {
     deltaTime: 0,
     gravity: -9.81,
   };
-
-  const gameObjectManager = new GameObjectManager();
-  const unitManager = new UnitManager();
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -52,6 +49,14 @@ export const ThreeScene = () => {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x202020);
 
+    const gameObjectManager = new GameObjectManager(worldRef.current);
+    const unitManager = new UnitManager();
+    const projectileManager = new ProjectileManager(
+      gameObjectManager,
+      scene,
+      worldRef.current
+    );
+
     // === Camera ===
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -72,7 +77,11 @@ export const ThreeScene = () => {
 
     // === Add Objects ===
     {
-      const gameObject = gameObjectManager.createGameObject(scene, "ground");
+      const gameObject = gameObjectManager.createGameObject(
+        scene,
+        "ground",
+        ""
+      );
       const width = 10;
       const depth = 10;
       gameObject.transform.position.set(0, -0.5, 0);
@@ -104,9 +113,6 @@ export const ThreeScene = () => {
     const render = () => {
       requestAnimationFrame(render);
 
-      if (worldRef.current) {
-        worldRef.current.step();
-      }
       const delta = clock.getDelta();
       globals.time += delta;
 
@@ -122,7 +128,7 @@ export const ThreeScene = () => {
       ); // Up high above the scene
 
       gameObjectManager.update(globals.deltaTime);
-      unitManager.update(globals.deltaTime)
+      unitManager.update(globals.deltaTime);
       renderer.render(scene, camera);
     };
     render();
@@ -171,6 +177,12 @@ export const ThreeScene = () => {
           console.log("------->:", model.url);
           const animsByName = {};
           model.gltf.animations.forEach((clip) => {
+            const match = clip.name.match(/^(?:[^_]+_){2}(.+)$/);
+
+            if (match) {
+              clip.name = match[1];
+            }
+
             animsByName[clip.name] = clip;
             console.log("  ", clip.name);
           });
@@ -181,31 +193,51 @@ export const ThreeScene = () => {
         prepModelsAndAnimations();
         {
           const offset = new Vector3(0, 0.8, 0);
-          unitManager.createUnit(
+          const gameObject = unitManager.createKnight(
             gameObjectManager,
             scene,
             "knight1",
             models.knight1,
             worldRef.current,
             offset,
-            new Vector3(0.4, 0.8, 0.4),
+            new Vector3(0.4, 1.5, 0.4),
             1
           );
+          const rigidbody = gameObject.getComponent(CharacterRigidbody);
+          rigidbody.setPosition(new Vector3(-4, 0, -4));
         }
         {
           const offset = new Vector3(0, 0.8, 0);
-          const gameObject = unitManager.createUnit(
+          const gameObject = unitManager.createKnight(
             gameObjectManager,
             scene,
             "knight2",
             models.knight1,
             worldRef.current,
             offset,
-            new Vector3(0.4, 0.8, 0.4),
+            new Vector3(0.4, 1.5, 0.4),
             2
           );
-          const rigidbody = gameObject.getComponent(Rigidbody);
-          rigidbody.setPosition(new Vector3(4, 0, 0));
+          const rigidbody = gameObject.getComponent(CharacterRigidbody);
+          rigidbody.setPosition(new Vector3(4, 0, 4));
+        }
+        {
+          const offset = new Vector3(0, 0.8, 0);
+          const arrowSpawnPoint = new Vector3(0.06, 1.09, 0.8);
+          const gameObject = unitManager.createArcher(
+            gameObjectManager,
+            scene,
+            "archer1",
+            models.archer1,
+            worldRef.current,
+            offset,
+            new Vector3(0.4, 1.5, 0.4),
+            2,
+            projectileManager,
+            arrowSpawnPoint
+          );
+          const rigidbody = gameObject.getComponent(CharacterRigidbody);
+          rigidbody.setPosition(new Vector3(-4, 0, 4));
         }
       }
     }

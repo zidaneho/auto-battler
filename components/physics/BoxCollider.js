@@ -1,5 +1,5 @@
 import RAPIER from "@dimforge/rapier3d";
-import { GameComponent } from "./ecs/GameComponent";
+import { GameComponent } from "../ecs/GameComponent";
 
 export class BoxCollider extends GameComponent {
   constructor(gameObject, width, height, depth) {

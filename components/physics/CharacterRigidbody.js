@@ -1,8 +1,8 @@
 import * as RAPIER from "@dimforge/rapier3d";
-import { GameComponent } from "./ecs/GameComponent";
-import { Vector3 } from "./ecs/Vector3";
+import { GameComponent } from "../ecs/GameComponent";
+import { Vector3 } from "../ecs/Vector3";
 
-export class Rigidbody extends GameComponent {
+export class CharacterRigidbody extends GameComponent {
   constructor(gameObject, physics_world_ref, colliderDesc, offset) {
     super(gameObject);
     this.offset = offset;
@@ -20,6 +20,7 @@ export class Rigidbody extends GameComponent {
 
     // Cached vector to reduce allocations
     this._cachedVector3 = new RAPIER.Vector3(0, 0, 0);
+    this.cachedQuaternion = new RAPIER.Quaternion();
   }
 
   setPosition(vector3) {

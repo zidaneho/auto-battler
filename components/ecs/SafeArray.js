@@ -38,4 +38,7 @@ export class SafeArray {
       this.removeQueue.clear();
     }
   }
+  get length() {
+    return this.array.length + this.addQueue.length - this.removeQueue.size;
+  }
 }

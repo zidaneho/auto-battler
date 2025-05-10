@@ -1,4 +1,4 @@
-import { GameComponent } from "./ecs/GameComponent";
+import { GameComponent } from "../ecs/GameComponent";
 import * as THREE from "three";
 
 export class GroundMesh extends GameComponent {
