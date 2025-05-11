@@ -17,10 +17,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.4",
+    "@types/node": "22.15.17",
     "@types/react-dom": "^19",
     "@types/three": "^0.175.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.4"
+    "tailwindcss": "^4.1.4",
+    "typescript": "5.8.3"
   }
 }

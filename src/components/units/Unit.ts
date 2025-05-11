@@ -1,0 +1,55 @@
+import { GameComponent } from "@/components/ecs/GameComponent";
+import { SkinInstance } from "@/components/SkinInstance";
+import { UnitStats } from "./UnitStats";
+import * as THREE from "three";
+import { CharacterRigidbody } from "../physics/CharacterRigidbody";
+import { HealthComponent } from "../HealthComponent";
+import { GameObject } from "../ecs/GameObject";
+
+export abstract class Unit extends GameComponent { // Made Unit an abstract class
+  teamId: number;
+  target: Unit | null;
+  attackSpeed: number;
+  unitStats: UnitStats;
+  skinInstance: SkinInstance;
+  healthComponent: HealthComponent;
+  rigidbody?: CharacterRigidbody; //Rigidbody can be undefined
+  forward: THREE.Vector3;
+  hasAttacked:boolean; //added hasAttacked
+
+  constructor(gameObject: GameObject, model: any, teamId: number) { // Added GameObject type
+    super(gameObject);
+
+    //a team id of 0 means it can attack anyone
+    this.teamId = teamId;
+    this.target = null;
+    this.attackSpeed = 1;
+    this.hasAttacked = false;
+
+    this.unitStats = gameObject.getComponent(UnitStats)!; // ! asserts non-null
+    this.skinInstance = gameObject.addComponent(SkinInstance, model);
+    this.healthComponent = gameObject.getComponent(HealthComponent)!; // ! asserts non-null
+    this.rigidbody = gameObject.getComponent(CharacterRigidbody);
+
+    this.forward = new THREE.Vector3(0, 0, 1);
+  }
+
+  update(delta: number): void { // Added delta parameter
+    super.update(delta);
+    if (this.target != null && this.healthComponent && !this.target.healthComponent.isAlive()) {
+      this.target = null;
+    }
+  }
+  dealDamage(target: Unit): void { // Added target parameter
+     if (target == null) {
+      return;
+    }
+
+    target.healthComponent.takeDamage(this.unitStats.attack);
+    this.hasAttacked = true;
+  }
+  //a function that should be overridden by unique classes
+  canHaveTarget(otherUnit: Unit): boolean { // Added otherUnit parameter and return type
+    return otherUnit !== this && this.teamId !== otherUnit.teamId && otherUnit.healthComponent.health > 0;
+  }
+}
