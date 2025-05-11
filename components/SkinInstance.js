@@ -26,6 +26,7 @@ export class SkinInstance extends GameComponent {
     if (this.currentAnimation == animName && !reset) {
       return;
     } else if (!(animName in this.actions)) {
+      console.log(animName +"is not contained in animation actions");
       return;
     }
 

@@ -5,7 +5,7 @@ export const models = {
     knight1: { url: "/models/gltf/TT_Light_Infantry.glb",damagePoint1: 0.25 },
     mage1: {url:"/models/gltf/TT_Mage.glb"},
     worker1: {url:"/models/gltf/TT_Peasant.glb"},
-    priest1: {url:"/models/gltf/TT_Priest.glb"},
+    priest1: {url:"/models/gltf/TT_Priest.glb",damagePoint1:0.6},
 
     arrow1: {url:"/models/gltf/Arrow_A.glb"},
   };

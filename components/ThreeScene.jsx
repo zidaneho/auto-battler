@@ -206,39 +206,39 @@ export const ThreeScene = () => {
           const rigidbody = gameObject.getComponent(CharacterRigidbody);
           rigidbody.setPosition(new Vector3(-4, 0, -4));
         }
-        {
-          const offset = new Vector3(0, 0.8, 0);
-          const gameObject = unitManager.createKnight(
-            gameObjectManager,
-            scene,
-            "knight2",
-            models.knight1,
-            worldRef.current,
-            offset,
-            new Vector3(0.4, 1.5, 0.4),
-            2
-          );
-          const rigidbody = gameObject.getComponent(CharacterRigidbody);
-          rigidbody.setPosition(new Vector3(4, 0, 4));
-        }
-        {
-          const offset = new Vector3(0, 0.8, 0);
-          const arrowSpawnPoint = new Vector3(0.06, 1.09, 0.8);
-          const gameObject = unitManager.createArcher(
-            gameObjectManager,
-            scene,
-            "archer1",
-            models.archer1,
-            worldRef.current,
-            offset,
-            new Vector3(0.4, 1.5, 0.4),
-            2,
-            projectileManager,
-            arrowSpawnPoint
-          );
-          const rigidbody = gameObject.getComponent(CharacterRigidbody);
-          rigidbody.setPosition(new Vector3(-4, 0, 4));
-        }
+        // {
+        //   const offset = new Vector3(0, 0.8, 0);
+        //   const gameObject = unitManager.createKnight(
+        //     gameObjectManager,
+        //     scene,
+        //     "knight2",
+        //     models.knight1,
+        //     worldRef.current,
+        //     offset,
+        //     new Vector3(0.4, 1.5, 0.4),
+        //     2
+        //   );
+        //   const rigidbody = gameObject.getComponent(CharacterRigidbody);
+        //   rigidbody.setPosition(new Vector3(4, 0, 4));
+        // }
+        // {
+        //   const offset = new Vector3(0, 0.8, 0);
+        //   const arrowSpawnPoint = new Vector3(0.06, 1.09, 0.8);
+        //   const gameObject = unitManager.createArcher(
+        //     gameObjectManager,
+        //     scene,
+        //     "archer1",
+        //     models.archer1,
+        //     worldRef.current,
+        //     offset,
+        //     new Vector3(0.4, 1.5, 0.4),
+        //     2,
+        //     projectileManager,
+        //     arrowSpawnPoint
+        //   );
+        //   const rigidbody = gameObject.getComponent(CharacterRigidbody);
+        //   rigidbody.setPosition(new Vector3(-4, 0, 4));
+        // }
         // Add Priest here:
         {
           const offset = new Vector3(0, 0.8, 0);

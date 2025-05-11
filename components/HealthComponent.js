@@ -4,14 +4,13 @@ export class HealthComponent extends GameComponent {
   constructor(gameObject, health) {
     super(gameObject);
     this.health = health;
-    this.maxHealth = health;
+    this.maxHealth = health * 2;
   }
 
   takeDamage(damage) {
     this.health -= damage;
   }
   heal(health) {
-    console.log("healed");
     this.health += health;
   }
   isAlive() {

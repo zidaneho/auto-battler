@@ -16,7 +16,7 @@ export class Unit extends GameComponent {
 
     this.unitStats = gameObject.getComponent(UnitStats);
     this.unitStats.attack = 50;
-    this.unitStats.healingPower = 50;
+    this.unitStats.healingPower = 4;
 
     this.skinInstance = gameObject.addComponent(SkinInstance, model);
     this.healthComponent = gameObject.getComponent(HealthComponent);

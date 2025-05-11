@@ -42,7 +42,7 @@ export class Priest extends Unit {
                 this.gameObject.transform.position
               );
 
-              if (vector.length() <= 1) {
+              if (vector.length() <= 4) {
                 fsm.transition("heal");
               }
 
@@ -59,7 +59,7 @@ export class Priest extends Unit {
         heal: {
           enter: () => {
             this.attackTimer = 0;
-            this.skinInstance.playAnimation("cast");
+            this.skinInstance.playAnimation("cast_A");
             this.attackClipLength = this.skinInstance.getClipLength();
           },
           update: (delta) => {
@@ -74,6 +74,7 @@ export class Priest extends Unit {
                   (1 / this.attackSpeed)
             ) {
               this.healTarget(this.target);
+              this.hasAttacked = true;
             } else if (
               this.attackTimer >=
               this.attackClipLength * (1 / this.attackSpeed)
@@ -105,6 +106,7 @@ export class Priest extends Unit {
   canHaveTarget(otherUnit) {
     //Priests can target allies who need healing or enemies
     if (
+      otherUnit !== this &&
       this.teamId === otherUnit.teamId &&
       otherUnit.healthComponent.health < otherUnit.healthComponent.maxHealth
     ) {
