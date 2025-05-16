@@ -36,53 +36,50 @@ export class SkinInstance extends GameComponent {
   }
 
   playAnimation(animName: string, reset: boolean = false): void {
-    if (this.currentAnimation === animName && !reset) {
-      return;
-    } else if (!(animName in this.actions)) {
+    if (this.currentAnimation === animName && !reset) return;
+    if (!(animName in this.actions)) {
       console.warn(`${animName} is not contained in animation actions`);
       return;
     }
 
-    if (this.currentAnimation) {
-      const old = this.actions[this.currentAnimation];
-      if (old) {
-        old.enabled = false;
-        old.fadeOut(0.25);
-      }
+    const prevAction = this.currentAnimation
+      ? this.actions[this.currentAnimation]
+      : null;
+    const nextAction = this.actions[animName];
+
+    if (!nextAction) {
+      console.warn(`Animation ${animName} not found`);
+      return;
     }
 
-    let action = this.actions[animName];
-    if (!action) {
-      const clip = this.model.animations[animName];
-      if (clip) {
-          action = this.mixer.clipAction(clip);
-          this.actions[animName] = action;
-      } else {
-          console.warn(`Animation ${animName} not found in model animations`);
-          return;
-      }
+    // Only reset if explicitly requested
+    if (reset) nextAction.reset();
+
+    // Enable next action and smoothly fade it in
+    nextAction.enabled = true;
+    nextAction.fadeIn(0.1).play(); // Smooth fade-in over 0.2s
+
+    // Smoothly fade out the previous action if switching
+    if (prevAction && prevAction !== nextAction) {
+      prevAction.crossFadeTo(nextAction, 0.2, false); // Blend old -> new over 0.2s
     }
 
-    action.reset();
-    action.enabled = true;
-    action.timeScale = 1;
-    action.play();
     this.currentAnimation = animName;
   }
 
   getClipLength(): number | undefined {
     const action = this.actions[this.currentAnimation as string];
     if (action) {
-        const clip = action.getClip();
-        clip.resetDuration();
-        return clip.duration;
+      const clip = action.getClip();
+      clip.resetDuration();
+      return clip.duration;
     }
   }
 
   setAnimationSpeed(speed: number): void {
     const action = this.actions[this.currentAnimation as string];
     if (action) {
-        action.timeScale = speed;
+      action.timeScale = speed;
     }
   }
 

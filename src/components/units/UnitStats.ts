@@ -9,10 +9,10 @@ export class UnitStats extends GameComponent {
 
   constructor(
     gameObject: GameObject,
-    health: number,
-    attack: number,
-    moveSpeed: number,
-    healingPower: number
+    health: number = 1,
+    attack: number = 1,
+    moveSpeed: number = 1,
+    healingPower: number = 0
   ) {
     super(gameObject);
     this.health = health;

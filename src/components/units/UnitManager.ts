@@ -129,7 +129,7 @@ export class UnitManager {
     gameObject.addComponent(DebugMesh, rigidbody, parent);
     gameObjectManager.registerCollider(rigidbody.collider.handle, gameObject);
 
-    const stats = gameObject.addComponent(UnitStats, 100, 10, 1);
+    const stats = gameObject.addComponent(UnitStats, 100, 10, 1, 40);
     gameObject.addComponent(HealthComponent, stats.health);
 
     return gameObject;
@@ -143,7 +143,7 @@ export class UnitManager {
       if (unit.target == null) {
         let minDist = Infinity;
         let target: Unit | null = null;
-
+        
         this.units.forEach((otherUnit: Unit) => {
           if (unit.canHaveTarget(otherUnit)) {
             let dist = unit.gameObject.transform.position.distanceTo(

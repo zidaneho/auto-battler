@@ -23,4 +23,8 @@ export class HealthComponent extends GameComponent {
   isAlive(): boolean {
     return this.health > 0;
   }
+  isOverhealed():boolean {
+    
+    return this.health >= this.maxHealth;
+  }
 }

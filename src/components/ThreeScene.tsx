@@ -132,6 +132,7 @@ export const ThreeScene: React.FC = () => {
             loadedModels[key] = {
               gltf: gltfScene,
               animations: animsByName,
+              damagePoint1: model.damagePoint1
             };
           },
           undefined,

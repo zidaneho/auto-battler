@@ -6,6 +6,7 @@ import * as THREE from "three";
 export interface Model {
   gltf: THREE.Object3D
   animations: { [key: string]: THREE.AnimationClip };
+  damagePoint1?:number;
 }
 
 export interface ModelEntry {

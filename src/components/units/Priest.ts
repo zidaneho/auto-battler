@@ -17,7 +17,7 @@ export class Priest extends Unit {
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
       deathAction.clampWhenFinished = true;
-      deathAction.setLoop(THREE.LoopOnce,1);
+      deathAction.setLoop(THREE.LoopOnce, 1);
     }
     this.damagePoint = model.damagePoint1;
 
@@ -41,7 +41,11 @@ export class Priest extends Unit {
             this.skinInstance.playAnimation("walk");
           },
           update: (delta: number) => {
-            if (this.target != null && this.target.healthComponent.isAlive()) {
+            if (
+              this.target != null &&
+              this.target.healthComponent.isAlive() &&
+              !this.target.healthComponent.isOverhealed()
+            ) {
               const result = new THREE.Vector3();
               const vector = result.subVectors(
                 this.target.gameObject.transform.position,
@@ -58,6 +62,7 @@ export class Priest extends Unit {
               this.rigidbody?.move(vector);
               this.gameObject.lookAt(vector, this.forward);
             } else {
+              this.target = null;
               fsm.transition("idle");
             }
           },
@@ -67,11 +72,13 @@ export class Priest extends Unit {
             this.attackTimer = 0;
             this.skinInstance.playAnimation("cast_A");
             this.attackClipLength = this.skinInstance.getClipLength();
+            this.hasAttacked = false;
           },
           update: (delta: number) => {
             if (this.attackClipLength === undefined) {
               return;
             }
+
             this.skinInstance.setAnimationSpeed(this.attackSpeed);
             this.attackTimer += delta;
 
@@ -113,22 +120,18 @@ export class Priest extends Unit {
     }
   }
   //Override canHaveTarget to allow healing allies
-  override canHaveTarget(otherUnit: Unit) : boolean {
-    //Priests can target allies who need healing or enemies
+  override canHaveTarget(otherUnit: Unit): boolean {
+    //Priests can target allies who need healing
     if (
       otherUnit !== this &&
       this.teamId === otherUnit.teamId &&
-      otherUnit.healthComponent.health < otherUnit.healthComponent.maxHealth
+      otherUnit.healthComponent.isAlive() &&
+      !otherUnit.healthComponent.isOverhealed()
     ) {
       return true;
     }
-    
-    return Boolean(
-      otherUnit &&
-      otherUnit !== this &&
-      this.teamId !== otherUnit.teamId &&
-      otherUnit.healthComponent.health > 0
-    );
+
+    return false;
   }
 
   update(delta: number) {
