@@ -9,7 +9,6 @@ import { GameObject } from "../ecs/GameObject";
 export abstract class Unit extends GameComponent { // Made Unit an abstract class
   teamId: number;
   target: Unit | null;
-  attackSpeed: number;
   unitStats: UnitStats;
   skinInstance: SkinInstance;
   healthComponent: HealthComponent;
@@ -23,7 +22,6 @@ export abstract class Unit extends GameComponent { // Made Unit an abstract clas
     //a team id of 0 means it can attack anyone
     this.teamId = teamId;
     this.target = null;
-    this.attackSpeed = 1;
     this.hasAttacked = false;
 
     this.unitStats = gameObject.getComponent(UnitStats)!; // ! asserts non-null

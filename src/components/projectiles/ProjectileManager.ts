@@ -10,7 +10,7 @@ import { GameObject } from "../ecs/GameObject";
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d';
 import { ProjectileDamage } from "./ProjectileDamage";
-import { Model } from "../meshes/ModelList";
+import { Model } from "../ModelStore";
 
 
 export class ProjectileManager {

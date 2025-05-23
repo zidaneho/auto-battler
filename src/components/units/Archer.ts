@@ -2,9 +2,9 @@ import { Unit } from "./Unit";
 import * as THREE from "three";
 import { FiniteStateMachine } from "../FiniteStateMachine";
 import { ProjectileManager } from "../projectiles/ProjectileManager";
-import { loadedModels, models } from "../meshes/ModelList";
 import { Vector3 } from "three";
 import { GameObject } from "../ecs/GameObject";
+import { useModelStore } from "../ModelStore";
 
 export class Archer extends Unit {
   projectileManager: ProjectileManager;
@@ -81,7 +81,7 @@ export class Archer extends Unit {
             if (this.attackClipLength === undefined) {
               return;
             }
-            this.skinInstance.setAnimationSpeed(this.attackSpeed);
+            this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
             this.attackTimer += delta;
 
             if (
@@ -90,7 +90,7 @@ export class Archer extends Unit {
               this.attackTimer >=
                 this.damagePoint *
                   this.attackClipLength *
-                  (1 / this.attackSpeed)
+                  (1 / this.unitStats.attackSpeed)
             ) {
               this.hasAttacked = true;
               const result = new THREE.Vector3();
@@ -98,9 +98,9 @@ export class Archer extends Unit {
                 this.target.gameObject.transform.position,
                 this.gameObject.transform.position
               );
-              const model = loadedModels.arrow1;
+              const model = useModelStore((s) => s.getModel("arrow1"));
               const scene = new THREE.Object3D();
-              if (model.gltf !== undefined) {
+              if (model !== undefined) {
                 this.projectileManager.createProjectile(
                   this.getArrowSpawnPoint(),
                   model,
@@ -112,7 +112,7 @@ export class Archer extends Unit {
               }
             } else if (
               this.attackTimer >=
-              this.attackClipLength * (1 / this.attackSpeed)
+              this.attackClipLength * (1 / this.unitStats.attackSpeed)
             ) {
               fsm.transition("idle");
             }

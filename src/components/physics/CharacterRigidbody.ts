@@ -19,15 +19,21 @@ export class CharacterRigidbody extends GameComponent {
     super(gameObject);
     this.offset = offset;
 
+    colliderDesc
+      .setFriction(1)
+      .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
+
     const pos = gameObject.transform.position;
-    const bodyDesc =
-      RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
-        pos.x + offset.x,
-        pos.y + offset.y,
-        pos.z + offset.z
-      );
+    const bodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(
+      pos.x + offset.x,
+      pos.y + offset.y,
+      pos.z + offset.z
+    );
 
     this.body = physics_world_ref.createRigidBody(bodyDesc);
+    this.body.setGravityScale(0, false);
+    this.body.lockRotations(true, true); // X, Y, Z
+
     this.collider = physics_world_ref.createCollider(colliderDesc, this.body);
 
     this._cachedVector3 = new RAPIER.Vector3(0, 0, 0);
@@ -39,21 +45,20 @@ export class CharacterRigidbody extends GameComponent {
     v.y = vector3.y + this.offset.y;
     v.z = vector3.z + this.offset.z;
 
-    this.body.setNextKinematicTranslation(v);
+    this.body.setTranslation(v, true); // ✅ not setLinvel
   }
 
-  move(vector3: Vector3): void {
-    if (!isFinite(vector3.x) || !isFinite(vector3.y) || !isFinite(vector3.z)) {
-      console.warn("Attempted to move with invalid vector", vector3);
+  move(direction: Vector3): void {
+    if (
+      !isFinite(direction.x) ||
+      !isFinite(direction.y) ||
+      !isFinite(direction.z)
+    )
       return;
-    }
-    const currentPos = this.body.translation();
-    const v = this._cachedVector3;
-    v.x = currentPos.x + vector3.x;
-    v.y = currentPos.y + vector3.y;
-    v.z = currentPos.z + vector3.z;
 
-    this.body.setNextKinematicTranslation(v);
+    const velocity = new RAPIER.Vector3(direction.x, direction.y, direction.z);
+
+    this.body.setLinvel(velocity, true);
   }
 
   update(delta: number): void {

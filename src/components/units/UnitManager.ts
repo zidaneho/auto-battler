@@ -13,6 +13,8 @@ import { Vector3 } from "three";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 import { Unit } from "./Unit";
+import { UnitBlueprint } from "../UnitBlueprint";
+import { useModelStore } from "../ModelStore";
 
 export class UnitManager {
   units: SafeArray<Unit>;
@@ -21,71 +23,60 @@ export class UnitManager {
     this.units = new SafeArray();
   }
 
-  createKnight(
-    gameObjectManager: any, // Replace 'any' with the actual type
-    parent: THREE.Object3D,
-    name: string,
-    model: any, // Replace 'any' with the actual type
-    physics_world: RAPIER.World,
-    collider_offset: Vector3,
-    colliderSize: Vector3,
-    teamId: number
-  ): GameObject {
-    const gameObject = this.setupUnit(
-      gameObjectManager,
-      parent,
-      name,
-      physics_world,
-      collider_offset,
-      colliderSize
-    );
-
-    gameObject.addComponent(UnitStats, 1000, 10, 1);
-    const unit = gameObject.addComponent(Knight, model, teamId);
-
-    this.units.add(unit);
-    return gameObject;
-  }
-  createArcher(
-    gameObjectManager: any, // Replace 'any' with the actual type
-    parent: THREE.Object3D,
-    name: string,
-    model: any, // Replace 'any' with the actual type
-    physics_world: RAPIER.World,
-    collider_offset: Vector3,
-    colliderSize: Vector3,
+  instantiateUnit(
+    blueprint: UnitBlueprint,
     teamId: number,
-    projectileManager: any, // Replace 'any' with the actual type
-    projectileSpawnPoint: Vector3
+    gameObjectManager: any,
+    parent: THREE.Object3D,
+    physics_world: RAPIER.World
   ): GameObject {
+    const colliderSize = blueprint.collider?.size ?? new THREE.Vector3(1, 1, 1);
+    const colliderOffset =
+      blueprint.collider?.offset ?? new THREE.Vector3(0, 0, 0);
+
     const gameObject = this.setupUnit(
       gameObjectManager,
       parent,
-      name,
+      blueprint.name ?? blueprint.modelKey,
       physics_world,
-      collider_offset,
+      colliderOffset,
       colliderSize
     );
+
+    const model = useModelStore((s) => s.getModel(blueprint.modelKey));
+    if (model === undefined) {
+      console.warn(blueprint.modelKey, "is not loaded yet!");
+      return gameObject;
+    }
     const unit = gameObject.addComponent(
-      Archer,
-      model,
-      teamId,
-      projectileManager,
-      projectileSpawnPoint
+      blueprint.unitClass,
+      model.gltf,
+      teamId
     );
 
+    // Optional stat overrides
+    if (blueprint.stats) {
+      const stats = gameObject.getComponent(UnitStats)!;
+      stats.moveSpeed = blueprint.stats.moveSpeed;
+      stats.attackSpeed = blueprint.stats.attackSpeed;
+      stats.health = blueprint.stats.health;
+    }
+
     this.units.add(unit);
+    const body = gameObject.getComponent(CharacterRigidbody);
     return gameObject;
   }
-  createPriest(
-    gameObjectManager: any, // Replace 'any' with the actual type
+
+  createUnit<T extends Unit>(
+    UnitType: new (gameObject: GameObject, ...args: any[]) => T,
+    gameObjectManager: any,
     parent: THREE.Object3D,
     name: string,
-    model: any, // Replace 'any' with the actual type
+    model: any,
     physics_world: RAPIER.World,
     collider_offset: Vector3,
     colliderSize: Vector3,
-    teamId: number
+    ...unitArgs: any[]
   ): GameObject {
     const gameObject = this.setupUnit(
       gameObjectManager,
@@ -96,7 +87,7 @@ export class UnitManager {
       colliderSize
     );
 
-    const unit = gameObject.addComponent(Priest, model, teamId);
+    const unit = gameObject.addComponent(UnitType, model, ...unitArgs);
 
     this.units.add(unit);
     return gameObject;
@@ -129,7 +120,7 @@ export class UnitManager {
     gameObject.addComponent(DebugMesh, rigidbody, parent);
     gameObjectManager.registerCollider(rigidbody.collider.handle, gameObject);
 
-    const stats = gameObject.addComponent(UnitStats, 100, 10, 1, 40);
+    const stats = gameObject.addComponent(UnitStats, 100, 10, 25, 40);
     gameObject.addComponent(HealthComponent, stats.health);
 
     return gameObject;
@@ -143,7 +134,7 @@ export class UnitManager {
       if (unit.target == null) {
         let minDist = Infinity;
         let target: Unit | null = null;
-        
+
         this.units.forEach((otherUnit: Unit) => {
           if (unit.canHaveTarget(otherUnit)) {
             let dist = unit.gameObject.transform.position.distanceTo(

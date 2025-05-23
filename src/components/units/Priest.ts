@@ -79,7 +79,7 @@ export class Priest extends Unit {
               return;
             }
 
-            this.skinInstance.setAnimationSpeed(this.attackSpeed);
+            this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
             this.attackTimer += delta;
 
             if (
@@ -88,13 +88,13 @@ export class Priest extends Unit {
               this.attackTimer >=
                 this.damagePoint *
                   this.attackClipLength *
-                  (1 / this.attackSpeed)
+                  (1 / this.unitStats.attackSpeed)
             ) {
               this.healTarget(this.target);
               this.hasAttacked = true;
             } else if (
               this.attackTimer >=
-              this.attackClipLength * (1 / this.attackSpeed)
+              this.attackClipLength * (1 / this.unitStats.attackSpeed)
             ) {
               fsm.transition("idle");
             }

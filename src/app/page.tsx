@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import ThreeScene from "@/components/ThreeScene";
+import AutoBattler from "@/components/AutoBattler";
 
 const Home: React.FC = () => {
   const [color, setColor] = useState<number>(0x00ff00);
@@ -20,8 +21,8 @@ const Home: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      {/* <ModelManager /> */}
-      <ThreeScene />
+      
+      <AutoBattler />
     </div>
   );
 };

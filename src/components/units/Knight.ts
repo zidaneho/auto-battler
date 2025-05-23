@@ -16,7 +16,7 @@ export class Knight extends Unit {
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
       deathAction.clampWhenFinished = true;
-      deathAction.setLoop(THREE.LoopOnce,1);
+      deathAction.setLoop(THREE.LoopOnce, 1);
     }
     this.damagePoint = model.damagePoint1;
 
@@ -71,7 +71,8 @@ export class Knight extends Unit {
             if (this.attackClipLength === undefined) {
               return;
             }
-            this.skinInstance.setAnimationSpeed(this.attackSpeed);
+        
+            this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
             this.attackTimer += delta;
 
             if (
@@ -80,12 +81,12 @@ export class Knight extends Unit {
               this.attackTimer >=
                 this.damagePoint *
                   this.attackClipLength *
-                  (1 / this.attackSpeed)
+                  (1 / this.unitStats.attackSpeed)
             ) {
               this.dealDamage(this.target);
             } else if (
               this.attackTimer >=
-              this.attackClipLength * (1 / this.attackSpeed)
+              this.attackClipLength * (1 / this.unitStats.attackSpeed)
             ) {
               fsm.transition("idle");
             }
@@ -97,6 +98,7 @@ export class Knight extends Unit {
         death: {
           enter: () => {
             this.skinInstance.playAnimation("death_A");
+            this.rigidbody?.body.setEnabled(false);
           },
         },
       },
