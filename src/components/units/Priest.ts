@@ -9,7 +9,6 @@ export class Priest extends Unit {
   attackTimer: number = 0;
   attackClipLength: number | undefined;
   damagePoint: number;
-  fsm: FiniteStateMachine<string>;
 
   constructor(gameObject: GameObject, model: any, teamId: number) {
     super(gameObject, model, teamId);
@@ -21,97 +20,95 @@ export class Priest extends Unit {
     }
     this.damagePoint = model.damagePoint1;
 
-    const fsm = new FiniteStateMachine<string>(
-      {
-        idle: {
-          enter: () => {
-            this.skinInstance.playAnimation("idle");
-          },
-          update: (delta: number) => {
-            if (this.target != null) {
-              fsm.transition("chase");
-            }
-          },
-          // exit : () => {
-
-          // }
+    this.fsm.addStates({
+      idle: {
+        enter: () => {
+          this.skinInstance.playAnimation("idle");
         },
-        chase: {
-          enter: () => {
-            this.skinInstance.playAnimation("walk");
-          },
-          update: (delta: number) => {
-            if (
-              this.target != null &&
-              this.target.healthComponent.isAlive() &&
-              !this.target.healthComponent.isOverhealed()
-            ) {
-              const result = new THREE.Vector3();
-              const vector = result.subVectors(
-                this.target.gameObject.transform.position,
-                this.gameObject.transform.position
-              );
-
-              if (vector.length() <= 4) {
-                fsm.transition("heal");
-              }
-
-              vector.normalize();
-              vector.multiplyScalar(this.unitStats.moveSpeed * delta);
-
-              this.rigidbody?.move(vector);
-              this.gameObject.lookAt(vector, this.forward);
-            } else {
-              this.target = null;
-              fsm.transition("idle");
-            }
-          },
+        update: (delta: number) => {
+          if (this.target != null) {
+            this.fsm.transition("chase");
+          }
         },
-        heal: {
-          enter: () => {
-            this.attackTimer = 0;
-            this.skinInstance.playAnimation("cast_A");
-            this.attackClipLength = this.skinInstance.getClipLength();
-            this.hasAttacked = false;
-          },
-          update: (delta: number) => {
-            if (this.attackClipLength === undefined) {
+        // exit : () => {
+
+        // }
+      },
+      chase: {
+        enter: () => {
+          this.skinInstance.playAnimation("walk");
+        },
+        update: (delta: number) => {
+          if (
+            this.target != null &&
+            this.target.healthComponent.isAlive() &&
+            !this.target.healthComponent.isOverhealed()
+          ) {
+            const result = new THREE.Vector3();
+            const vector = result.subVectors(
+              this.target.gameObject.transform.position,
+              this.gameObject.transform.position
+            );
+
+            if (vector.length() <= 4) {
+              this.fsm.transition("heal");
               return;
             }
 
-            this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
-            this.attackTimer += delta;
+            vector.normalize();
+            vector.multiplyScalar(this.unitStats.moveSpeed);
 
-            if (
-              this.target != null &&
-              !this.hasAttacked &&
-              this.attackTimer >=
-                this.damagePoint *
-                  this.attackClipLength *
-                  (1 / this.unitStats.attackSpeed)
-            ) {
-              this.healTarget(this.target);
-              this.hasAttacked = true;
-            } else if (
-              this.attackTimer >=
-              this.attackClipLength * (1 / this.unitStats.attackSpeed)
-            ) {
-              fsm.transition("idle");
-            }
-          },
-          exit: () => {
-            this.hasAttacked = false;
-          },
-        },
-        death: {
-          enter: () => {
-            this.skinInstance.playAnimation("death_A");
-          },
+            this.rigidbody?.move(vector);
+            this.gameObject.lookAt(vector, this.forward);
+          } else {
+            this.target = null;
+            this.fsm.transition("idle");
+          }
         },
       },
-      "idle"
-    );
-    this.fsm = fsm;
+      heal: {
+        enter: () => {
+          this.attackTimer = 0;
+          this.skinInstance.playAnimation("cast_A");
+          this.attackClipLength = this.skinInstance.getClipLength() + this.GCD;
+          this.hasAttacked = false;
+        },
+        update: (delta: number) => {
+          if (this.attackClipLength === undefined) {
+            return;
+          }
+
+          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.attackTimer += delta;
+
+          if (
+            this.target != null &&
+            !this.hasAttacked &&
+            this.attackTimer >=
+              this.damagePoint *
+                this.attackClipLength *
+                (1 / this.unitStats.attackSpeed)
+          ) {
+            this.healTarget(this.target);
+            this.hasAttacked = true;
+          } else if (
+            this.attackTimer >=
+            this.attackClipLength * (1 / this.unitStats.attackSpeed)
+          ) {
+            this.fsm.transition("idle");
+          }
+        },
+        exit: () => {
+          this.hasAttacked = false;
+        },
+      },
+      death: {
+        enter: () => {
+          this.skinInstance.playAnimation("death_A");
+        },
+      },
+    });
+    this.skinInstance.playAnimation("idle");
   }
 
   healTarget(target: Unit) {
@@ -135,6 +132,9 @@ export class Priest extends Unit {
   }
 
   update(delta: number) {
+    if (!this.enabled) {
+      return;
+    }
     super.update(delta);
     if (this.healthComponent && !this.healthComponent.isAlive()) {
       this.fsm.transition("death");

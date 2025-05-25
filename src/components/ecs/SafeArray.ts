@@ -3,6 +3,7 @@ export class SafeArray<T> {
   private addQueue: T[] = [];
   private removeQueue: Set<T> = new Set();
 
+
   get isEmpty(): boolean {
     return this.addQueue.length + this.array.length > 0;
   }

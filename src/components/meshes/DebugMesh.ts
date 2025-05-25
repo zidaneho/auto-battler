@@ -60,7 +60,7 @@ export class DebugMesh extends GameComponent {
       const translation = this.bodyComponent.body.translation();
       const rotation = this.bodyComponent.body.rotation();
       this.mesh.position.set(translation.x, translation.y, translation.z);
-      this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z,rotation.w);
+      this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
     }
   }
 

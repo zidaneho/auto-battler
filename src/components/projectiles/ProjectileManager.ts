@@ -7,11 +7,10 @@ import { SphereCollider } from "../physics/SphereCollider";
 import { SkinInstance } from "../SkinInstance";
 import { ProjectileController } from "./ProjectileController";
 import { GameObject } from "../ecs/GameObject";
-import * as THREE from 'three';
-import * as RAPIER from '@dimforge/rapier3d';
+import * as THREE from "three";
+import * as RAPIER from "@dimforge/rapier3d";
 import { ProjectileDamage } from "./ProjectileDamage";
 import { Model } from "../ModelStore";
-
 
 export class ProjectileManager {
   gameObjectManager: any; // Replace 'any' with the actual type of gameObjectManager
@@ -37,7 +36,8 @@ export class ProjectileManager {
     spawnPosition: Vector3,
     model: Model | undefined, // Use the Model interface
     speed: number,
-    direction: THREE.Vector3,
+    gravity: number,
+    targetPos: Vector3,
     teamId: number,
     damage: number
   ): void {
@@ -65,7 +65,13 @@ export class ProjectileManager {
     );
 
     gameObject.addComponent(SkinInstance, model);
-    gameObject.addComponent(ProjectileController, speed, direction);
+    gameObject.addComponent(
+      ProjectileController,
+      speed,
+      spawnPosition,
+      targetPos,
+      gravity
+    );
     gameObject.addComponent(ProjectileDamage, teamId, damage);
     gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 

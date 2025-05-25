@@ -8,6 +8,7 @@ function removeArrayElement<T>(array: T[], element: T): void {
 }
 
 interface Component {
+  enabled?: boolean;
   update?(delta: number): void;
   destroy?(): void;
 }
@@ -32,7 +33,10 @@ export class GameObject {
     this.tag = tag;
   }
 
-  addComponent<T extends Component>(ComponentType: new (gameObject: GameObject, ...args: any[]) => T, ...args: any[]): T {
+  addComponent<T extends Component>(
+    ComponentType: new (gameObject: GameObject, ...args: any[]) => T,
+    ...args: any[]
+  ): T {
     const component = new ComponentType(this, ...args);
     this.components.push(component);
     return component;
@@ -45,8 +49,12 @@ export class GameObject {
     removeArrayElement(this.components, component);
   }
 
-  getComponent<T extends Component>(ComponentType: new (gameObject: GameObject, ...args: any[]) => T): T | undefined {
-    return this.components.find(c => c instanceof ComponentType) as T | undefined;
+  getComponent<T extends Component>(
+    ComponentType: new (gameObject: GameObject, ...args: any[]) => T
+  ): T | undefined {
+    return this.components.find((c) => c instanceof ComponentType) as
+      | T
+      | undefined;
   }
 
   setPosition(vector3: THREE.Vector3): void {
@@ -71,8 +79,15 @@ export class GameObject {
 
   update(delta: number): void {
     for (const component of this.components) {
-      if (component.update) {
+      if (component.enabled && component.update) {
         component.update(delta);
+      }
+    }
+  }
+  destroy(): void {
+    for (const component of this.components) {
+      if (component.destroy) {
+        component.destroy();
       }
     }
   }
@@ -87,7 +102,7 @@ export class GameObject {
   off(eventName: string, handler: (payload?: any) => void): void {
     const handlers = this._listeners[eventName];
     if (!handlers) return;
-    this._listeners[eventName] = handlers.filter(h => h !== handler);
+    this._listeners[eventName] = handlers.filter((h) => h !== handler);
   }
 
   emit(eventName: string, payload?: any): void {

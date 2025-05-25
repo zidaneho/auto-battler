@@ -3,6 +3,7 @@ import { GameObject } from "../ecs/GameObject";
 
 export class UnitStats extends GameComponent {
   health: number;
+  maxHealth:number;
   attack: number;
   moveSpeed: number;
   healingPower: number;
@@ -20,6 +21,7 @@ export class UnitStats extends GameComponent {
   ) {
     super(gameObject);
     this.health = health;
+    this.maxHealth = health;
     this.attack = attack;
     this.moveSpeed = moveSpeed;
     this.healingPower = healingPower;

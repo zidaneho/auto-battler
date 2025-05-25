@@ -9,6 +9,7 @@ export class CharacterRigidbody extends GameComponent {
   collider: RAPIER.Collider;
   private _cachedVector3: RAPIER.Vector3;
   cachedQuaternion: RAPIER.Quaternion = new RAPIER.Quaternion(0, 0, 0, 1);
+  private world: RAPIER.World;
 
   constructor(
     gameObject: GameObject,
@@ -24,19 +25,31 @@ export class CharacterRigidbody extends GameComponent {
       .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min);
 
     const pos = gameObject.transform.position;
-    const bodyDesc = RAPIER.RigidBodyDesc.dynamic().setTranslation(
-      pos.x + offset.x,
-      pos.y + offset.y,
-      pos.z + offset.z
-    );
+    const bodyDesc =
+      RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(
+        pos.x + offset.x,
+        pos.y + offset.y,
+        pos.z + offset.z
+      );
 
     this.body = physics_world_ref.createRigidBody(bodyDesc);
-    this.body.setGravityScale(0, false);
-    this.body.lockRotations(true, true); // X, Y, Z
+    this.body.lockRotations(true, true); // Lock X and Y rotation to avoid tumbling
 
     this.collider = physics_world_ref.createCollider(colliderDesc, this.body);
 
     this._cachedVector3 = new RAPIER.Vector3(0, 0, 0);
+    this.world = physics_world_ref;
+  }
+
+  destroy() {
+    if (this.body && this.world.getRigidBody(this.body.handle)) {
+      this.world.removeRigidBody(this.body);
+    }
+  }
+
+  getCorePosition() {
+    const pos = this.gameObject.transform.position.clone();
+    return pos.add(this.offset);
   }
 
   setPosition(vector3: Vector3): void {
@@ -45,7 +58,7 @@ export class CharacterRigidbody extends GameComponent {
     v.y = vector3.y + this.offset.y;
     v.z = vector3.z + this.offset.z;
 
-    this.body.setTranslation(v, true); // ✅ not setLinvel
+    this.body.setNextKinematicTranslation(v);
   }
 
   move(direction: Vector3): void {
@@ -56,17 +69,11 @@ export class CharacterRigidbody extends GameComponent {
     )
       return;
 
-    const velocity = new RAPIER.Vector3(direction.x, direction.y, direction.z);
+    const currentPos = this.body.translation();
+    this._cachedVector3.x = currentPos.x + direction.x;
+    this._cachedVector3.y = currentPos.y + direction.y;
+    this._cachedVector3.z = currentPos.z + direction.z;
 
-    this.body.setLinvel(velocity, true);
-  }
-
-  update(delta: number): void {
-    const updatedPos = this.body.translation();
-    this.gameObject.transform.position.set(
-      updatedPos.x - this.offset.x,
-      updatedPos.y - this.offset.y,
-      updatedPos.z - this.offset.z
-    );
+    this.body.setNextKinematicTranslation(this._cachedVector3);
   }
 }

@@ -5,6 +5,7 @@ import { ProjectileManager } from "../projectiles/ProjectileManager";
 import { Vector3 } from "three";
 import { GameObject } from "../ecs/GameObject";
 import { useModelStore } from "../ModelStore";
+import { GameConfig } from "../GlobalsConfig";
 
 export class Archer extends Unit {
   projectileManager: ProjectileManager;
@@ -13,7 +14,6 @@ export class Archer extends Unit {
   attackTimer: number = 0;
   attackClipLength: number | undefined;
   damagePoint: number;
-  fsm: FiniteStateMachine<string>;
 
   constructor(
     gameObject: GameObject,
@@ -33,109 +33,132 @@ export class Archer extends Unit {
     this.projectileManager = projectileManager;
     this.projectileSpawnPoint = projectileSpawnPoint;
 
-    const fsm = new FiniteStateMachine<string>(
-      {
-        idle: {
-          enter: () => {
-            this.skinInstance.playAnimation("idle");
-          },
-          update: (delta: number) => {
-            if (this.target != null) {
-              this.fsm.transition("chase");
-            }
-          },
-        },
-        chase: {
-          enter: () => {
-            this.skinInstance.playAnimation("walk");
-          },
-          update: (delta: number) => {
-            if (this.target != null && this.target.healthComponent.isAlive()) {
-              const result = new THREE.Vector3();
-              const vector = result.subVectors(
-                this.target.gameObject.transform.position,
-                this.gameObject.transform.position
-              );
-
-              if (vector.length() <= 10) {
-                this.fsm.transition("attack");
-              }
-
-              vector.normalize();
-              vector.multiplyScalar(this.unitStats.moveSpeed * delta);
-
-              this.rigidbody?.move(vector);
-              this.gameObject.lookAt(vector, this.forward);
-            } else {
-              this.fsm.transition("idle");
-            }
-          },
-        },
-        attack: {
-          enter: () => {
-            this.attackTimer = 0;
-            this.skinInstance.playAnimation("attack_A");
-            this.attackClipLength = this.skinInstance.getClipLength();
-          },
-          update: (delta: number) => {
-            if (this.attackClipLength === undefined) {
-              return;
-            }
-            this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
-            this.attackTimer += delta;
-
-            if (
-              this.target != null &&
-              !this.hasAttacked &&
-              this.attackTimer >=
-                this.damagePoint *
-                  this.attackClipLength *
-                  (1 / this.unitStats.attackSpeed)
-            ) {
-              this.hasAttacked = true;
-              const result = new THREE.Vector3();
-              const vector = result.subVectors(
-                this.target.gameObject.transform.position,
-                this.gameObject.transform.position
-              );
-              const model = useModelStore((s) => s.getModel("arrow1"));
-              const scene = new THREE.Object3D();
-              if (model !== undefined) {
-                this.projectileManager.createProjectile(
-                  this.getArrowSpawnPoint(),
-                  model,
-                  15,
-                  vector,
-                  this.teamId,
-                  50
-                );
-              }
-            } else if (
-              this.attackTimer >=
-              this.attackClipLength * (1 / this.unitStats.attackSpeed)
-            ) {
-              fsm.transition("idle");
-            }
-          },
-          exit: () => {
-            this.hasAttacked = false;
-          },
-        },
-        death: {
-          enter: () => {
-            this.skinInstance.playAnimation("death_A");
-          },
+    this.fsm.addStates({
+      idle: {
+        enter: () => {
+          this.skinInstance.playAnimation("idle");
         },
       },
-      "idle"
-    );
-    this.fsm = fsm;
+      chase: {
+        enter: () => {
+          this.skinInstance.playAnimation("walk");
+        },
+        update: (delta: number) => {
+          if (this.target != null && this.target.healthComponent.isAlive()) {
+            const result = new THREE.Vector3();
+            const vector = result.subVectors(
+              this.target.gameObject.transform.position,
+              this.gameObject.transform.position
+            );
+
+            vector.normalize();
+            vector.multiplyScalar(this.unitStats.moveSpeed);
+
+            this.rigidbody?.move(vector);
+            this.gameObject.lookAt(vector, this.forward);
+          }
+        },
+        exit: () => {
+          this.rigidbody?.move(new Vector3(0, 0, 0));
+        },
+      },
+      attack: {
+        enter: () => {
+          this.attackTimer = 0;
+          this.skinInstance.playAnimation("attack_A");
+          this.attackClipLength = this.skinInstance.getClipLength() + this.GCD;
+
+          if (this.target != null) {
+            const result = new THREE.Vector3();
+            const vector = result.subVectors(
+              this.target.gameObject.transform.position,
+              this.gameObject.transform.position
+            );
+
+            vector.normalize();
+
+            this.gameObject.lookAt(vector, this.forward);
+          }
+        },
+        update: (delta: number) => {
+          if (this.attackClipLength === undefined) {
+            return;
+          }
+          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.attackTimer += delta;
+
+          if (
+            this.target != null &&
+            !this.hasAttacked &&
+            this.attackTimer >=
+              this.damagePoint *
+                this.attackClipLength *
+                (1 / this.unitStats.attackSpeed)
+          ) {
+            this.hasAttacked = true;
+            const arrowModelData = useModelStore.getState().getModel("arrow1"); //
+
+            // const scene = new THREE.Object3D(); // This line seems incorrect, ProjectileManager handles scene
+            if (arrowModelData !== undefined && this.target != null) {
+              // Check if model is actually loaded
+              const targetPos = this.target.rigidbody
+                ? this.target.rigidbody.getCorePosition()
+                : this.target.gameObject.transform.position;
+              this.projectileManager.createProjectile(
+                this.getArrowSpawnPoint(),
+                arrowModelData, // Pass the loaded Model data
+                15, // projectile speed
+                GameConfig.gravityScalar,
+                targetPos,
+                this.teamId,
+                this.unitStats.attack // damage
+              );
+            } else {
+              console.warn("Arrow model 'arrow1' not found in store.");
+            }
+          } else if (
+            this.attackTimer >=
+            this.attackClipLength * (1 / this.unitStats.attackSpeed)
+          ) {
+            this.fsm.transition("idle");
+          }
+        },
+        exit: () => {
+          this.hasAttacked = false;
+        },
+      },
+      death: {
+        enter: () => {
+          this.skinInstance.playAnimation("death_A");
+        },
+      },
+    });
+
+    this.skinInstance.playAnimation("idle");
   }
 
   update(delta: number) {
+    if (!this.enabled) {
+      return;
+    }
     super.update(delta);
+
+    const vector =
+      this.target != null
+        ? new THREE.Vector3().subVectors(
+            this.target.gameObject.transform.position,
+            this.gameObject.transform.position
+          )
+        : new THREE.Vector3(Infinity, Infinity, Infinity);
+
     if (this.healthComponent && !this.healthComponent.isAlive()) {
       this.fsm.transition("death");
+    } else if (vector.length() <= 10) {
+      this.fsm.transition("attack");
+    } else if (this.target != null && this.target.healthComponent.isAlive()) {
+      this.fsm.transition("chase");
+    } else {
+      this.fsm.transition("idle");
     }
     this.fsm.update(delta);
   }

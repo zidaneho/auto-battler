@@ -7,7 +7,7 @@ export class Rigidbody extends GameComponent {
   offset: Vector3;
   body: RAPIER.RigidBody;
   collider: RAPIER.Collider;
-  private _cachedVector3: RAPIER.Vector3;
+  private world:RAPIER.World;
 
   constructor(gameObject: GameObject, physics_world_ref: RAPIER.World, colliderDesc: RAPIER.ColliderDesc, offset: Vector3) {
     super(gameObject);
@@ -23,7 +23,11 @@ export class Rigidbody extends GameComponent {
     this.body = physics_world_ref.createRigidBody(bodyDesc);
     this.collider = physics_world_ref.createCollider(colliderDesc, this.body);
 
-    this._cachedVector3 = new RAPIER.Vector3(0, 0, 0);
+    this.world = physics_world_ref;
+  }
+
+  destroy() {
+    this.world.removeRigidBody(this.body);
   }
 
   applyImpulse(vector3: Vector3): void {

@@ -51,6 +51,7 @@ export const fillUnitOnGrid = ({
       const pos = gridPositions[x][z];
       const unit = unitManager.createUnit(
         Knight,
+        pos,
         gameObjectManager,
         scene,
         unitType,

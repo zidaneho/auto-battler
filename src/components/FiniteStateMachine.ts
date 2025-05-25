@@ -11,9 +11,19 @@ export class FiniteStateMachine<TState extends string> {
   get state(): TState | undefined {
     return this.currentState;
   }
+  addStates(
+    newStates: { [key in TState]?: { enter?: () => void; update?: (delta: number) => void; exit?: () => void } }
+  ): void {
+    for (const key in newStates) {
+      this.states[key as TState] = newStates[key as TState];
+    }
+  }
 
-  transition(state: TState): void {
+  transition(state: TState,reset:boolean = false): void {
     const oldState = this.states[this.currentState as TState];
+    if (this.currentState === state && !reset) {
+      return;
+    }
     if (oldState && oldState.exit) {
       oldState.exit.call(this);
     }

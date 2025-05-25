@@ -57,23 +57,26 @@ export class SkinInstance extends GameComponent {
 
     // Enable next action and smoothly fade it in
     nextAction.enabled = true;
-    nextAction.fadeIn(0.1).play(); // Smooth fade-in over 0.2s
+    nextAction.play(); // Smooth fade-in over 0.2s
 
-    // Smoothly fade out the previous action if switching
     if (prevAction && prevAction !== nextAction) {
-      prevAction.crossFadeTo(nextAction, 0.2, false); // Blend old -> new over 0.2s
+      nextAction.reset().setEffectiveWeight(1).fadeIn(0.1);
+      prevAction.crossFadeTo(nextAction, 0.1, false);
+    } else {
+      nextAction.reset().setEffectiveWeight(1).fadeIn(0.1);
     }
 
     this.currentAnimation = animName;
   }
 
-  getClipLength(): number | undefined {
+  getClipLength(): number {
     const action = this.actions[this.currentAnimation as string];
     if (action) {
       const clip = action.getClip();
       clip.resetDuration();
       return clip.duration;
     }
+    return 0;
   }
 
   setAnimationSpeed(speed: number): void {

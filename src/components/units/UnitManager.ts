@@ -15,6 +15,7 @@ import * as RAPIER from "@dimforge/rapier3d";
 import { Unit } from "./Unit";
 import { UnitBlueprint } from "../UnitBlueprint";
 import { useModelStore } from "../ModelStore";
+import { GameObjectManager } from "../ecs/GameObjectManager";
 
 export class UnitManager {
   units: SafeArray<Unit>;
@@ -25,6 +26,7 @@ export class UnitManager {
 
   instantiateUnit(
     blueprint: UnitBlueprint,
+    spawnPosition:Vector3,
     teamId: number,
     gameObjectManager: any,
     parent: THREE.Object3D,
@@ -35,6 +37,7 @@ export class UnitManager {
       blueprint.collider?.offset ?? new THREE.Vector3(0, 0, 0);
 
     const gameObject = this.setupUnit(
+      spawnPosition,
       gameObjectManager,
       parent,
       blueprint.name ?? blueprint.modelKey,
@@ -69,7 +72,8 @@ export class UnitManager {
 
   createUnit<T extends Unit>(
     UnitType: new (gameObject: GameObject, ...args: any[]) => T,
-    gameObjectManager: any,
+    spawnPosition : Vector3,
+    gameObjectManager: GameObjectManager,
     parent: THREE.Object3D,
     name: string,
     model: any,
@@ -80,6 +84,7 @@ export class UnitManager {
   ): GameObject {
     const gameObject = this.setupUnit(
       gameObjectManager,
+      spawnPosition,
       parent,
       name,
       physics_world,
@@ -88,6 +93,7 @@ export class UnitManager {
     );
 
     const unit = gameObject.addComponent(UnitType, model, ...unitArgs);
+    unit.enabled = false;
 
     this.units.add(unit);
     return gameObject;
@@ -95,6 +101,7 @@ export class UnitManager {
 
   setupUnit(
     gameObjectManager: any, // Replace 'any' with the actual type
+    spawnPosition : Vector3,
     parent: THREE.Object3D,
     name: string,
     physics_world: RAPIER.World,
@@ -116,6 +123,7 @@ export class UnitManager {
       collider.description,
       offset
     );
+    rigidbody.setPosition(gameObject.transform.position);
     gameObject.addComponent(CollisionComponent);
     gameObject.addComponent(DebugMesh, rigidbody, parent);
     gameObjectManager.registerCollider(rigidbody.collider.handle, gameObject);
@@ -127,6 +135,22 @@ export class UnitManager {
   }
   removeUnit(unit: Unit): void {
     this.units.remove(unit);
+  }
+  getAllUnits(): Unit[] {
+    const allUnits: Unit[] = [];
+    this.units.forEach((unit) => allUnits.push(unit));
+    return allUnits;
+  }
+
+  clearAllUnits(): void {
+    // Re-initializing the SafeArray is often the safest way to clear it,
+    // especially if its remove operations are deferred or complex.
+    this.units = new SafeArray();
+  }
+  playAllUnits(): void {
+    this.units.forEach((unit: Unit) => {
+      unit.enabled = true;
+    });
   }
 
   update(delta: number): void {

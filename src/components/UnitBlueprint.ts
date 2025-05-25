@@ -7,6 +7,7 @@ export type UnitBlueprint = {
   modelKey: string;
   name: string;
   iconUrl?: string;
+  cost:number;
   stats: {
     moveSpeed: number;
     attack:number;

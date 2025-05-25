@@ -5,8 +5,9 @@ import * as THREE from "three";
 import { CharacterRigidbody } from "../physics/CharacterRigidbody";
 import { HealthComponent } from "../HealthComponent";
 import { GameObject } from "../ecs/GameObject";
+import { FiniteStateMachine } from "../FiniteStateMachine";
 
-export abstract class Unit extends GameComponent { // Made Unit an abstract class
+export class Unit extends GameComponent { // Made Unit an abstract class
   teamId: number;
   target: Unit | null;
   unitStats: UnitStats;
@@ -15,6 +16,8 @@ export abstract class Unit extends GameComponent { // Made Unit an abstract clas
   rigidbody?: CharacterRigidbody; //Rigidbody can be undefined
   forward: THREE.Vector3;
   hasAttacked:boolean; //added hasAttacked
+  fsm:FiniteStateMachine<string>;
+  readonly GCD : number = 0.1;
 
   constructor(gameObject: GameObject, model: any, teamId: number) { // Added GameObject type
     super(gameObject);
@@ -30,10 +33,15 @@ export abstract class Unit extends GameComponent { // Made Unit an abstract clas
     this.rigidbody = gameObject.getComponent(CharacterRigidbody);
 
     this.forward = new THREE.Vector3(0, 0, 1);
+
+    this.fsm = new FiniteStateMachine<string>({
+      sleep: {
+        //dummy state units enter when initializing.
+      }
+    },"sleep");
   }
 
   update(delta: number): void { // Added delta parameter
-    super.update(delta);
     if (this.target != null && this.healthComponent && !this.target.healthComponent.isAlive()) {
       this.target = null;
     }
