@@ -17,7 +17,6 @@ export class Unit extends GameComponent { // Made Unit an abstract class
   forward: THREE.Vector3;
   hasAttacked:boolean; //added hasAttacked
   fsm:FiniteStateMachine<string>;
-  readonly GCD : number = 0.1;
 
   constructor(gameObject: GameObject, model: any, teamId: number) { // Added GameObject type
     super(gameObject);

@@ -14,7 +14,6 @@ export class ProjectileDamage extends GameComponent {
 
     this.gameObject.on("collision", ({ otherGO, started }) => {
       if (!started || !otherGO) return;
-
       if (otherGO.tag === "unit") {
         const otherUnit = otherGO.getComponent(Unit);
         if (otherUnit && otherUnit.teamId !== this.teamId) {

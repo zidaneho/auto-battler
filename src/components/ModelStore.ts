@@ -6,6 +6,7 @@ export interface Model {
   gltf: THREE.Object3D;
   animations: Record<string, THREE.AnimationClip>;
   damagePoint1?: number;
+  
 }
 
 export const useModelStore = create<{

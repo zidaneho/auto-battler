@@ -57,11 +57,11 @@ export class ProjectileManager {
     );
     rigidbody.setPosition(spawnPosition);
 
-    gameObject.addComponent(CollisionComponent);
-
-    this.gameObjectManager.registerCollider(
-      rigidbody.collider.handle,
-      gameObject
+    gameObject.addComponent(
+      CollisionComponent,
+      this.gameObjectManager,
+      rigidbody.body,
+      rigidbody.collider
     );
 
     gameObject.addComponent(SkinInstance, model);
@@ -73,7 +73,7 @@ export class ProjectileManager {
       gravity
     );
     gameObject.addComponent(ProjectileDamage, teamId, damage);
-    gameObject.addComponent(DebugMesh, rigidbody, this.scene);
+    //gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 
     this.projectiles.add(gameObject);
   }

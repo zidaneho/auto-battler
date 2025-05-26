@@ -28,6 +28,9 @@ import { UnitStats } from "./units/UnitStats";
 import { HealthComponent } from "./HealthComponent";
 import { UnitBlueprint } from "./UnitBlueprint";
 import { allUnitBlueprints } from "./UnitBlueprintList";
+import { StaticBody } from "./physics/StaticBody";
+import { BoxCollider } from "./physics/BoxCollider";
+import { DebugMesh } from "./meshes/DebugMesh";
 
 interface PlayerUnitInstance {
   id: string; // Unique ID for the unit instance (e.g., gameObject.name)
@@ -164,6 +167,9 @@ const AutoBattler: React.FC = () => {
 
   // Effect for loading map model
   const mapModel = useModelStore((s) => s.models[currentMap]);
+  const collisionMapModel = useModelStore(
+    (s) => s.models["CollisionMap_" + currentMap]
+  );
   useEffect(() => {
     if (!threeRef.current?.scene || !mapModel?.gltf || !isLoaded) return;
     const scene = threeRef.current.scene;
@@ -172,9 +178,64 @@ const AutoBattler: React.FC = () => {
       .forEach((c) => scene.remove(c)); // Clear old map
     const newMapInstance = mapModel.gltf.clone();
     newMapInstance.userData.isMap = true;
+
     scene.add(newMapInstance);
+
+    //initialize collision map
+    if (collisionMapModel?.gltf && gameObjectManagerRef.current) {
+      const collisionMapInstance = collisionMapModel.gltf.clone();
+      scene.add(collisionMapInstance);
+      collisionMapInstance.position.copy(newMapInstance.position);
+      collisionMapInstance.rotation.copy(newMapInstance.rotation);
+      collisionMapInstance.scale.copy(newMapInstance.scale);
+
+      collisionMapInstance.traverse((child) => {
+        const gameObject = gameObjectManagerRef.current?.createGameObject(
+          collisionMapInstance,
+          "CollisionPart",
+          "terrain"
+        );
+
+        if (!gameObject) return;
+
+        // Match transform
+        gameObject.setPosition(child.getWorldPosition(new THREE.Vector3()));
+        gameObject.transform.setRotationFromQuaternion(
+          child.getWorldQuaternion(new THREE.Quaternion())
+        );
+        gameObject.transform.scale.copy(
+          child.getWorldScale(new THREE.Vector3())
+        );
+
+        // Use world-scale size for the collider
+        const scale = new THREE.Vector3();
+        child.getWorldScale(scale);
+        const collider = gameObject?.addComponent(
+          BoxCollider,
+          scale.x,
+          scale.y,
+          scale.z
+        );
+
+        const body = gameObject?.addComponent(
+          StaticBody,
+          worldRef.current,
+          collider?.description
+        );
+
+        gameObject?.addComponent(DebugMesh, body, sceneRef.current);
+      });
+      console.log("collision map loaded");
+    }
     console.log(`Map loaded: ${currentMap}`);
-  }, [mapModel, currentMap, isLoaded]);
+  }, [
+    gameObjectManagerRef,
+    worldRef,
+    sceneRef,
+    mapModel,
+    currentMap,
+    isLoaded,
+  ]);
 
   // Main game render loop
   useEffect(() => {
@@ -203,7 +264,9 @@ const AutoBattler: React.FC = () => {
       if (isGameActive) {
         world.step();
         gameObjectManager.update(delta);
-        unitManager.update(delta);
+        if (roundState === "battle") {
+          unitManager.update();
+        }
       }
       controls.update();
       renderer.render(scene, camera);
@@ -220,6 +283,7 @@ const AutoBattler: React.FC = () => {
     let intervalId: NodeJS.Timeout;
 
     if (roundState === "battle") {
+      unitManagerRef.current?.setTargets();
       unitManagerRef.current?.playAllUnits();
     }
     if (roundState === "setup" || roundState === "battle") {
@@ -278,11 +342,13 @@ const AutoBattler: React.FC = () => {
     }, 3000); // Consider the timing; cleanup should ideally happen before "setup" state begins.
   }, [roundState]); // Dependency array includes roundState
 
+  //THIS IS NOT THE BUTTON TO START PLAYING THE ROUND.
   const startGame = () => {
     if (!isLoaded || !unitManagerRef.current || !gameObjectManagerRef.current) {
       alert("Game assets or systems not ready. Please wait.");
       return;
     }
+
     setIsGameActive(true);
     setRoundState("setup");
     setRoundTimer(30); // Setup timer
@@ -551,14 +617,14 @@ const AutoBattler: React.FC = () => {
           <UnitPlacementSystem
             ref={placementRef1}
             scene={sceneRef.current} // Pass the actual scene
-            playerId={1}
+            position={new THREE.Vector3(-10, 1, 0)}
             tileSize={2}
             gridSize={4} // e.g. 4x4 grid
           />
           <UnitPlacementSystem
             ref={placementRef2}
             scene={sceneRef.current} // Pass the actual scene
-            playerId={2}
+            position={new THREE.Vector3(10, 1, 0)}
             tileSize={2}
             gridSize={4}
           />

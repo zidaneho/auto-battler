@@ -4,6 +4,8 @@ import { GameObject } from "../ecs/GameObject";
 
 export class StaticBody extends GameComponent {
   body: RAPIER.RigidBody;
+  collider: RAPIER.Collider;
+  private world : RAPIER.World;
 
   constructor(gameObject: GameObject, physics_world: RAPIER.World, colliderDesc: RAPIER.ColliderDesc) {
     super(gameObject);
@@ -15,8 +17,13 @@ export class StaticBody extends GameComponent {
     );
     const body = physics_world.createRigidBody(bodyDesc);
     this.body = body;
+    this.world = physics_world;
 
-    physics_world.createCollider(colliderDesc, body);
+    this.collider = physics_world.createCollider(colliderDesc, body);
+  }
+
+  destroy(): void {
+      this.world.removeRigidBody(this.body);
   }
 
   update(delta: number): void {

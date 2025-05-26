@@ -11,45 +11,59 @@ export class ProjectileController extends GameComponent {
   startPosition: Vector3;
   endPosition: Vector3;
   gravity: number;
+  lifetime:number;
+  private velocity: Vector3 = new Vector3(0, 0, 0);
+ 
 
   constructor(
     gameObject: GameObject,
     speed: number,
-    start:Vector3,
+    start: Vector3,
     target: Vector3,
-    gravity: number
+    gravity: number,
+    lifetime:number
   ) {
     super(gameObject);
     this.speed = speed;
+    this.lifetime = lifetime;
     this.rigidbody = gameObject.getComponent(Rigidbody);
 
     this.startPosition = start;
     this.endPosition = target; // Optional clone if target moves
     this.gravity = gravity;
-  }
-
-  update(delta: number): void {
-    if (!this.rigidbody || this.initialized) return;
-
-    const velocity = computeBallisticVelocity(
+    this.velocity = computeBallisticVelocity(
       this.startPosition,
       this.endPosition,
       this.speed,
       this.gravity
     );
-
-    this.rigidbody.body.setLinvel(
-      { x: velocity.x, y: velocity.y, z: velocity.z },
+    this.rigidbody?.body.setLinvel(
+      { x: this.velocity.x, y: this.velocity.y, z: this.velocity.z },
       true
     );
+  }
 
-    const target = new THREE.Vector3().addVectors(
-      this.gameObject.transform.position,
-      velocity
+  update(delta: number): void {
+    if (!this.rigidbody) return;
+
+    this.lifetime -= delta;
+    if (this.lifetime <= 0) {
+      return;
+    }
+
+    // Every frame: rotate to face velocity
+    const currentVel = this.rigidbody.body.linvel();
+    const velocityVector = new THREE.Vector3(
+      currentVel.x,
+      currentVel.y,
+      currentVel.z
     );
-    this.gameObject.transform.lookAt(target);
 
-    this.initialized = true;
+    if (velocityVector.lengthSq() > 0.0001) {
+      const currentPos = this.gameObject.transform.position;
+      const target = new THREE.Vector3().addVectors(currentPos, velocityVector);
+      this.gameObject.transform.lookAt(target);
+    }
   }
 }
 

@@ -33,7 +33,7 @@ export class CharacterRigidbody extends GameComponent {
       );
 
     this.body = physics_world_ref.createRigidBody(bodyDesc);
-    this.body.lockRotations(true, true); // Lock X and Y rotation to avoid tumbling
+    this.body.lockRotations(true, true); // Lock X and Y rotation
 
     this.collider = physics_world_ref.createCollider(colliderDesc, this.body);
 
@@ -69,11 +69,18 @@ export class CharacterRigidbody extends GameComponent {
     )
       return;
 
-    const currentPos = this.body.translation();
-    this._cachedVector3.x = currentPos.x + direction.x;
-    this._cachedVector3.y = currentPos.y + direction.y;
-    this._cachedVector3.z = currentPos.z + direction.z;
+    const current = this.body.translation();
+    const next = this._cachedVector3;
+    next.x = current.x + direction.x;
+    next.y = current.y + direction.y;
+    next.z = current.z + direction.z;
 
-    this.body.setNextKinematicTranslation(this._cachedVector3);
+    this.body.setNextKinematicTranslation(next);
+  }
+
+  update(delta: number): void {
+    const pos = this.body.translation();
+    const vector = new Vector3(pos.x, pos.y, pos.z).sub(this.offset);
+    this.gameObject.setPosition(vector);
   }
 }

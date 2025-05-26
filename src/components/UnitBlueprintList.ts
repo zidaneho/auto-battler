@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Knight } from "./units/Knight";
 import { UnitBlueprint } from "./UnitBlueprint";
 import { Archer } from "./units/Archer";
+import { Priest } from "./units/Priest";
 
 export const knightBlueprint: UnitBlueprint = {
   unitClass: Knight,
@@ -27,7 +28,7 @@ export const archerBlueprint: UnitBlueprint = {
   cost: 50,
   stats: {
     moveSpeed: 1,
-    attackSpeed: 0.7,
+    attackSpeed: 1,
     health: 150,
     attack: 10,
     healingPower: 0,
@@ -38,7 +39,7 @@ export const archerBlueprint: UnitBlueprint = {
   },
 };
 export const priestBlueprint: UnitBlueprint = {
-  unitClass: Archer,
+  unitClass: Priest,
   modelKey: "priest1",
   name: "Priest",
   cost: 50,

@@ -2,8 +2,6 @@ import { BoxCollider } from "../physics/BoxCollider";
 import { DebugMesh } from "../meshes/DebugMesh";
 import { SafeArray } from "../ecs/SafeArray";
 import { CharacterRigidbody } from "../physics/CharacterRigidbody";
-import { Knight } from "./Knight";
-import { CollisionComponent } from "../physics/CollisionComponent";
 import { HealthComponent } from "../HealthComponent";
 import { Archer } from "./Archer";
 import { UnitStats } from "./UnitStats";
@@ -26,7 +24,7 @@ export class UnitManager {
 
   instantiateUnit(
     blueprint: UnitBlueprint,
-    spawnPosition:Vector3,
+    spawnPosition: Vector3,
     teamId: number,
     gameObjectManager: any,
     parent: THREE.Object3D,
@@ -72,7 +70,7 @@ export class UnitManager {
 
   createUnit<T extends Unit>(
     UnitType: new (gameObject: GameObject, ...args: any[]) => T,
-    spawnPosition : Vector3,
+    spawnPosition: Vector3,
     gameObjectManager: GameObjectManager,
     parent: THREE.Object3D,
     name: string,
@@ -101,7 +99,7 @@ export class UnitManager {
 
   setupUnit(
     gameObjectManager: any, // Replace 'any' with the actual type
-    spawnPosition : Vector3,
+    spawnPosition: Vector3,
     parent: THREE.Object3D,
     name: string,
     physics_world: RAPIER.World,
@@ -124,8 +122,7 @@ export class UnitManager {
       offset
     );
     rigidbody.setPosition(gameObject.transform.position);
-    gameObject.addComponent(CollisionComponent);
-    gameObject.addComponent(DebugMesh, rigidbody, parent);
+    // gameObject.addComponent(DebugMesh, rigidbody, parent);
     gameObjectManager.registerCollider(rigidbody.collider.handle, gameObject);
 
     const stats = gameObject.addComponent(UnitStats, 100, 10, 25, 40);
@@ -153,7 +150,7 @@ export class UnitManager {
     });
   }
 
-  update(delta: number): void {
+  setTargets(): void {
     this.units.forEach((unit: Unit) => {
       if (unit.target == null) {
         let minDist = Infinity;
@@ -171,6 +168,29 @@ export class UnitManager {
           }
         });
         unit.target = target;
+      }
+    });
+  }
+  findNewTarget(unit: Unit): void {
+    let minDist = Infinity;
+    let target: Unit | null = null;
+    this.units.forEach((otherUnit: Unit) => {
+      if (unit.canHaveTarget(otherUnit)) {
+        let dist = unit.gameObject.transform.position.distanceTo(
+          otherUnit.gameObject.transform.position
+        );
+        if (dist < minDist) {
+          minDist = dist;
+          target = otherUnit;
+        }
+      }
+    });
+    unit.target = target;
+  }
+  update(): void {
+    this.units.forEach((unit: Unit) => {
+      if (unit.target == null) {
+        this.findNewTarget(unit);
       }
     });
   }

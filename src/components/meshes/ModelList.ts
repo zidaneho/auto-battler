@@ -17,5 +17,6 @@ export const models: Record<string, ModelEntry> = {
   //PROJECTILES
   arrow1: {url:"/models/gltf/Arrow_A.glb"},
   //MAPS
-  prototypeMap:{url:"/models/gltf/PrototypeMap.glb"}
+  prototypeMap:{url:"/models/gltf/PrototypeMap.glb"},
+  CollisionMap_prototypeMap:{url:"/models/gltf/CollisionMap_PrototypeMap.glb"}
 };

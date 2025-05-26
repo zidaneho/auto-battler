@@ -14,9 +14,9 @@ import { useModelStore } from "./ModelStore";
 
 interface Props {
   scene: THREE.Scene;
+  position: THREE.Vector3;
   gridSize?: number;
   tileSize?: number;
-  playerId: number;
 }
 
 export const fillUnitOnGrid = ({
@@ -36,7 +36,6 @@ export const fillUnitOnGrid = ({
   gameObjectManager: GameObjectManager;
   gridPositions: THREE.Vector3[][];
 }) => {
-    
   const model = useModelStore.getState().models[unitType];
   if (!model || !model.gltf) {
     console.warn(`Model for ${unitType} not loaded`);
@@ -72,7 +71,7 @@ export interface UnitPlacementSystemHandle {
 }
 
 export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
-  ({ scene, gridSize = 5, tileSize = 1, playerId }, ref) => {
+  ({ scene, position, gridSize = 5, tileSize = 1 }, ref) => {
     const gridRef = useRef<THREE.Group | null>(null);
     const gridPositionsRef = useRef<THREE.Vector3[][]>([]);
 
@@ -104,28 +103,26 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
           ]);
 
           const line = new THREE.Line(squareGeometry, material);
-          const playerOffsetZ = playerId === 1 ? -gridSize - 2 : gridSize + 2; // add spacing of 2 units
-          line.position.set(
-            worldX + (playerId === 1 ? -gridSize : 0),
-            0.01,
-            worldZ + playerOffsetZ
-          );
+          line.position.set(worldX - gridSize, 0.01, worldZ);
 
           gridGroup.add(line);
-          row.push(line.position.clone());
+
+          const gridPos = line.position.clone().add(position);
+          row.push(gridPos);
         }
 
         positions.push(row);
       }
 
       gridPositionsRef.current = positions;
+      gridGroup.position.set(position.x, position.y, position.z);
       scene.add(gridGroup);
       gridRef.current = gridGroup;
 
       return () => {
         scene.remove(gridGroup);
       };
-    }, [scene, gridSize, tileSize, playerId]);
+    }, [scene, position, gridSize, tileSize]);
 
     return null;
   }

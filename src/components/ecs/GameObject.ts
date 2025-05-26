@@ -19,7 +19,7 @@ interface GameObjectListeners {
 
 export class GameObject {
   name: string;
-  parent: THREE.Object3D;
+  parent:THREE.Object3D
   components: Component[] = [];
   transform: THREE.Object3D = new THREE.Object3D();
   _listeners: GameObjectListeners = {};

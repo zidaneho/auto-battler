@@ -36,7 +36,7 @@ export class GameObjectManager {
     return gameObject;
   }
 
-  private removeGameObject(gameObject: GameObject): void {
+  removeGameObject(gameObject: GameObject): void {
     this.gameObjects.remove(gameObject);
 
     gameObject.destroy();

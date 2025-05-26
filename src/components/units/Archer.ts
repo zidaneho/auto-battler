@@ -52,7 +52,7 @@ export class Archer extends Unit {
             );
 
             vector.normalize();
-            vector.multiplyScalar(this.unitStats.moveSpeed);
+            vector.multiplyScalar(this.unitStats.moveSpeed * delta);
 
             this.rigidbody?.move(vector);
             this.gameObject.lookAt(vector, this.forward);
@@ -65,8 +65,14 @@ export class Archer extends Unit {
       attack: {
         enter: () => {
           this.attackTimer = 0;
+          this.hasAttacked = false;
+
+          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
           this.skinInstance.playAnimation("attack_A");
-          this.attackClipLength = this.skinInstance.getClipLength() + this.GCD;
+
+          const rawClipLength = this.skinInstance.getClipLength(); // unscaled by attackSpeed
+          this.attackClipLength =
+            rawClipLength * (1 / this.unitStats.attackSpeed);
 
           if (this.target != null) {
             const result = new THREE.Vector3();
@@ -74,9 +80,7 @@ export class Archer extends Unit {
               this.target.gameObject.transform.position,
               this.gameObject.transform.position
             );
-
             vector.normalize();
-
             this.gameObject.lookAt(vector, this.forward);
           }
         },
@@ -90,10 +94,7 @@ export class Archer extends Unit {
           if (
             this.target != null &&
             !this.hasAttacked &&
-            this.attackTimer >=
-              this.damagePoint *
-                this.attackClipLength *
-                (1 / this.unitStats.attackSpeed)
+            this.attackTimer >= this.damagePoint * this.attackClipLength
           ) {
             this.hasAttacked = true;
             const arrowModelData = useModelStore.getState().getModel("arrow1"); //
@@ -107,7 +108,7 @@ export class Archer extends Unit {
               this.projectileManager.createProjectile(
                 this.getArrowSpawnPoint(),
                 arrowModelData, // Pass the loaded Model data
-                15, // projectile speed
+                12, // projectile speed
                 GameConfig.gravityScalar,
                 targetPos,
                 this.teamId,
@@ -116,16 +117,15 @@ export class Archer extends Unit {
             } else {
               console.warn("Arrow model 'arrow1' not found in store.");
             }
-          } else if (
-            this.attackTimer >=
-            this.attackClipLength * (1 / this.unitStats.attackSpeed)
-          ) {
-            this.fsm.transition("idle");
+          } else if (this.attackTimer >= this.attackClipLength) {
+            if (this.target != null && this.target.healthComponent.isAlive()) {
+              this.fsm.transition("attack", true);
+            } else {
+              this.fsm.transition("idle");
+            }
           }
         },
-        exit: () => {
-          this.hasAttacked = false;
-        },
+        exit: () => {},
       },
       death: {
         enter: () => {

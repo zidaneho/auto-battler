@@ -50,13 +50,8 @@ export class Priest extends Unit {
               this.gameObject.transform.position
             );
 
-            if (vector.length() <= 4) {
-              this.fsm.transition("heal");
-              return;
-            }
-
             vector.normalize();
-            vector.multiplyScalar(this.unitStats.moveSpeed);
+            vector.multiplyScalar(this.unitStats.moveSpeed * delta);
 
             this.rigidbody?.move(vector);
             this.gameObject.lookAt(vector, this.forward);
@@ -70,7 +65,7 @@ export class Priest extends Unit {
         enter: () => {
           this.attackTimer = 0;
           this.skinInstance.playAnimation("cast_A");
-          this.attackClipLength = this.skinInstance.getClipLength() + this.GCD;
+          this.attackClipLength = this.skinInstance.getClipLength();
           this.hasAttacked = false;
         },
         update: (delta: number) => {
@@ -95,7 +90,11 @@ export class Priest extends Unit {
             this.attackTimer >=
             this.attackClipLength * (1 / this.unitStats.attackSpeed)
           ) {
-            this.fsm.transition("idle");
+            if (this.target != null && this.target.healthComponent.isAlive()) {
+              this.fsm.transition("heal", true);
+            } else {
+              this.fsm.transition("idle");
+            }
           }
         },
         exit: () => {
@@ -135,9 +134,22 @@ export class Priest extends Unit {
     if (!this.enabled) {
       return;
     }
+    const vector =
+      this.target != null && this.target.healthComponent.isAlive()
+        ? new THREE.Vector3().subVectors(
+            this.target.gameObject.transform.position,
+            this.gameObject.transform.position
+          )
+        : new THREE.Vector3(100, 100, 100);
     super.update(delta);
     if (this.healthComponent && !this.healthComponent.isAlive()) {
       this.fsm.transition("death");
+    } else if (vector.length() <= 4) {
+      this.fsm.transition("heal");
+    } else if (this.target != null && this.target.healthComponent.isAlive()) {
+      this.fsm.transition("chase");
+    } else {
+      this.fsm.transition("idle");
     }
     this.fsm.update(delta);
   }

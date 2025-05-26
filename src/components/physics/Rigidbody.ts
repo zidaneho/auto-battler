@@ -7,9 +7,14 @@ export class Rigidbody extends GameComponent {
   offset: Vector3;
   body: RAPIER.RigidBody;
   collider: RAPIER.Collider;
-  private world:RAPIER.World;
+  private world: RAPIER.World;
 
-  constructor(gameObject: GameObject, physics_world_ref: RAPIER.World, colliderDesc: RAPIER.ColliderDesc, offset: Vector3) {
+  constructor(
+    gameObject: GameObject,
+    physics_world_ref: RAPIER.World,
+    colliderDesc: RAPIER.ColliderDesc,
+    offset: Vector3
+  ) {
     super(gameObject);
     this.offset = offset;
 

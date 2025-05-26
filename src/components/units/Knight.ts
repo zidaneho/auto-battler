@@ -41,7 +41,7 @@ export class Knight extends Unit {
               this.gameObject.transform.position
             );
             vector.normalize();
-            vector.multiplyScalar(this.unitStats.moveSpeed);
+            vector.multiplyScalar(this.unitStats.moveSpeed * delta);
 
             this.rigidbody?.move(vector);
             this.gameObject.lookAt(vector, this.forward);
@@ -52,7 +52,7 @@ export class Knight extends Unit {
         enter: () => {
           this.attackTimer = 0;
           this.skinInstance.playAnimation("attack_A");
-          this.attackClipLength = this.skinInstance.getClipLength() + this.GCD;
+          this.attackClipLength = this.skinInstance.getClipLength();
         },
         update: (delta: number) => {
           if (this.attackClipLength === undefined) {
@@ -75,7 +75,11 @@ export class Knight extends Unit {
             this.attackTimer >=
             this.attackClipLength * (1 / this.unitStats.attackSpeed)
           ) {
-            this.fsm.transition("idle");
+            if (this.target != null && this.target.healthComponent.isAlive()) {
+              this.fsm.transition("attack", true);
+            } else {
+              this.fsm.transition("idle");
+            }
           }
         },
         exit: () => {
@@ -108,7 +112,7 @@ export class Knight extends Unit {
 
     if (this.healthComponent && !this.healthComponent.isAlive()) {
       this.fsm.transition("death");
-    } else if (vector.lengthSq() <= 2) {
+    } else if (vector.length() <= 1.5) {
       this.fsm.transition("attack");
     } else if (this.target != null && this.target.healthComponent.isAlive()) {
       this.fsm.transition("chase");
