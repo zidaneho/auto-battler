@@ -11,9 +11,8 @@ export class ProjectileController extends GameComponent {
   startPosition: Vector3;
   endPosition: Vector3;
   gravity: number;
-  lifetime:number;
+  lifetime: number;
   private velocity: Vector3 = new Vector3(0, 0, 0);
- 
 
   constructor(
     gameObject: GameObject,
@@ -21,7 +20,7 @@ export class ProjectileController extends GameComponent {
     start: Vector3,
     target: Vector3,
     gravity: number,
-    lifetime:number
+    lifetime: number
   ) {
     super(gameObject);
     this.speed = speed;

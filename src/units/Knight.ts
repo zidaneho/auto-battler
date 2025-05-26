@@ -1,7 +1,7 @@
 import { Unit } from "./Unit";
 import * as THREE from "three";
-import { FiniteStateMachine } from "../FiniteStateMachine";
-import { GameObject } from "../ecs/GameObject";
+import { FiniteStateMachine } from "@/components/FiniteStateMachine";
+import { GameObject } from "@/ecs/GameObject";
 
 export class Knight extends Unit {
   hasAttacked: boolean = false;

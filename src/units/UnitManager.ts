@@ -1,19 +1,19 @@
-import { BoxCollider } from "../physics/BoxCollider";
-import { DebugMesh } from "../meshes/DebugMesh";
-import { SafeArray } from "../ecs/SafeArray";
-import { CharacterRigidbody } from "../physics/CharacterRigidbody";
-import { HealthComponent } from "../HealthComponent";
+import { BoxCollider } from "@/physics/BoxCollider";
+import { DebugMesh } from "@/components/meshes/DebugMesh";
+import { SafeArray } from "@/ecs/SafeArray";
+import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
+import { HealthComponent } from "@/components/HealthComponent";
 import { Archer } from "./Archer";
 import { UnitStats } from "./UnitStats";
 import { Priest } from "./Priest";
-import { GameObject } from "../ecs/GameObject";
+import { GameObject } from "@/ecs/GameObject";
 import { Vector3 } from "three";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 import { Unit } from "./Unit";
-import { UnitBlueprint } from "../UnitBlueprint";
-import { useModelStore } from "../ModelStore";
-import { GameObjectManager } from "../ecs/GameObjectManager";
+import { UnitBlueprint } from "@/components/UnitBlueprint";
+import { useModelStore } from "@/components/ModelStore";
+import { GameObjectManager } from "@/ecs/GameObjectManager";
 
 export class UnitManager {
   units: SafeArray<Unit>;

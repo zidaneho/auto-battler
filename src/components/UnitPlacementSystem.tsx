@@ -6,10 +6,10 @@ import React, {
   forwardRef,
 } from "react";
 import * as THREE from "three";
-import { UnitManager } from "./units/UnitManager";
-import { GameObjectManager } from "./ecs/GameObjectManager";
-import { CharacterRigidbody } from "./physics/CharacterRigidbody";
-import { Knight } from "./units/Knight";
+import { UnitManager } from "@/units/UnitManager";
+import { GameObjectManager } from "../ecs/GameObjectManager";
+import { CharacterRigidbody } from "../physics/CharacterRigidbody";
+import { Knight } from "@/units/Knight";
 import { useModelStore } from "./ModelStore";
 
 interface Props {
@@ -66,8 +66,12 @@ export const fillUnitOnGrid = ({
   }
 };
 
+export function getMaxUnits(grid: THREE.Vector3[][]): number {
+  return grid[0].length * (grid.length / 2);
+}
 export interface UnitPlacementSystemHandle {
   getGridPositions: () => THREE.Vector3[][];
+  getTileSize: () => number;
 }
 
 export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
@@ -77,6 +81,7 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
 
     useImperativeHandle(ref, () => ({
       getGridPositions: () => gridPositionsRef.current,
+      getTileSize: () => tileSize,
     }));
 
     useEffect(() => {

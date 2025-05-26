@@ -1,6 +1,6 @@
 // components/HealthComponent.ts
-import { GameComponent } from "./ecs/GameComponent";
-import { GameObject } from "./ecs/GameObject";
+import { GameComponent } from "../ecs/GameComponent";
+import { GameObject } from "../ecs/GameObject";
 
 export class HealthComponent extends GameComponent {
   health: number;
@@ -23,8 +23,7 @@ export class HealthComponent extends GameComponent {
   isAlive(): boolean {
     return this.health > 0;
   }
-  isOverhealed():boolean {
-    
+  isOverhealed(): boolean {
     return this.health >= this.maxHealth;
   }
 }

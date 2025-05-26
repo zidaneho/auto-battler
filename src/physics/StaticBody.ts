@@ -5,9 +5,13 @@ import { GameObject } from "../ecs/GameObject";
 export class StaticBody extends GameComponent {
   body: RAPIER.RigidBody;
   collider: RAPIER.Collider;
-  private world : RAPIER.World;
+  private world: RAPIER.World;
 
-  constructor(gameObject: GameObject, physics_world: RAPIER.World, colliderDesc: RAPIER.ColliderDesc) {
+  constructor(
+    gameObject: GameObject,
+    physics_world: RAPIER.World,
+    colliderDesc: RAPIER.ColliderDesc
+  ) {
     super(gameObject);
     const pos = gameObject.transform.position;
     const bodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(
@@ -23,7 +27,7 @@ export class StaticBody extends GameComponent {
   }
 
   destroy(): void {
-      this.world.removeRigidBody(this.body);
+    this.world.removeRigidBody(this.body);
   }
 
   update(delta: number): void {

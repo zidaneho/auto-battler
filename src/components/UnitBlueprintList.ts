@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { Knight } from "./units/Knight";
+import { Knight } from "../units/Knight";
 import { UnitBlueprint } from "./UnitBlueprint";
-import { Archer } from "./units/Archer";
-import { Priest } from "./units/Priest";
+import { Archer } from "../units/Archer";
+import { Priest } from "../units/Priest";
 
 export const knightBlueprint: UnitBlueprint = {
   unitClass: Knight,

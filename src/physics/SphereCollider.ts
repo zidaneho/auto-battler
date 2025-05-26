@@ -8,6 +8,5 @@ export class SphereCollider extends GameComponent {
   constructor(gameObject: GameObject, radius: number) {
     super(gameObject);
     this.description = RAPIER.ColliderDesc.ball(radius);
-    
   }
 }

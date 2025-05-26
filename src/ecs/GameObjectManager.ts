@@ -1,5 +1,5 @@
-import { SafeArray } from "@/components/ecs/SafeArray";
-import { GameObject } from "@/components/ecs/GameObject";
+import { SafeArray } from "@/ecs/SafeArray";
+import { GameObject } from "@/ecs/GameObject";
 import * as RAPIER from "@dimforge/rapier3d";
 import { CollisionComponent } from "../physics/CollisionComponent";
 import * as THREE from "three";

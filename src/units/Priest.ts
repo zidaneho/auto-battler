@@ -1,8 +1,8 @@
 import { Unit } from "./Unit";
 import * as THREE from "three";
-import { FiniteStateMachine } from "../FiniteStateMachine";
-import { HealthComponent } from "../HealthComponent";
-import { GameObject } from "../ecs/GameObject";
+import { FiniteStateMachine } from "@/components/FiniteStateMachine";
+import { HealthComponent } from "@/components/HealthComponent";
+import { GameObject } from "@/ecs/GameObject";
 
 export class Priest extends Unit {
   hasAttacked: boolean = false;

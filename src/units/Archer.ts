@@ -1,11 +1,11 @@
 import { Unit } from "./Unit";
 import * as THREE from "three";
-import { FiniteStateMachine } from "../FiniteStateMachine";
-import { ProjectileManager } from "../projectiles/ProjectileManager";
+import { FiniteStateMachine } from "@/components/FiniteStateMachine";
+import { ProjectileManager } from "@/projectiles/ProjectileManager";
 import { Vector3 } from "three";
-import { GameObject } from "../ecs/GameObject";
-import { useModelStore } from "../ModelStore";
-import { GameConfig } from "../GlobalsConfig";
+import { GameObject } from "@/ecs/GameObject";
+import { useModelStore } from "@/components/ModelStore";
+import { GameConfig } from "@/components/GlobalsConfig";
 
 export class Archer extends Unit {
   projectileManager: ProjectileManager;

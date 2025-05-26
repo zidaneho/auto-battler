@@ -1,4 +1,4 @@
-import { GameComponent } from "../ecs/GameComponent";
+import { GameComponent } from "../../ecs/GameComponent";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
 

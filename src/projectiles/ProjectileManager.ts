@@ -1,16 +1,16 @@
 import { SafeArray } from "../ecs/SafeArray";
 import { Vector3 } from "three";
-import { DebugMesh } from "../meshes/DebugMesh";
+import { DebugMesh } from "../components/meshes/DebugMesh";
 import { CollisionComponent } from "../physics/CollisionComponent";
 import { Rigidbody } from "../physics/Rigidbody";
 import { SphereCollider } from "../physics/SphereCollider";
-import { SkinInstance } from "../SkinInstance";
+import { SkinInstance } from "../components/SkinInstance";
 import { ProjectileController } from "./ProjectileController";
 import { GameObject } from "../ecs/GameObject";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 import { ProjectileDamage } from "./ProjectileDamage";
-import { Model } from "../ModelStore";
+import { Model } from "../components/ModelStore";
 
 export class ProjectileManager {
   gameObjectManager: any; // Replace 'any' with the actual type of gameObjectManager

@@ -1,7 +1,7 @@
 import { GameComponent } from "../ecs/GameComponent";
 import { GameObject } from "../ecs/GameObject";
-import { HealthComponent } from "../HealthComponent";
-import { Unit } from "../units/Unit";
+import { HealthComponent } from "../components/HealthComponent";
+import { Unit } from "@/units/Unit";
 
 export class ProjectileDamage extends GameComponent {
   damage: number;

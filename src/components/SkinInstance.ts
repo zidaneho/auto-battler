@@ -1,6 +1,6 @@
 // components/SkinInstance.ts
-import { GameComponent } from "@/components/ecs/GameComponent";
-import { GameObject } from "@/components/ecs/GameObject";
+import { GameComponent } from "@/ecs/GameComponent";
+import { GameObject } from "@/ecs/GameObject";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import * as THREE from "three";
 

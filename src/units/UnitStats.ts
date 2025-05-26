@@ -1,5 +1,5 @@
-import { GameComponent } from "../ecs/GameComponent";
-import { GameObject } from "../ecs/GameObject";
+import { GameComponent } from "@/ecs/GameComponent";
+import { GameObject } from "@/ecs/GameObject";
 
 export class UnitStats extends GameComponent {
   health: number;
