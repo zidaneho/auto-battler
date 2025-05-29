@@ -122,7 +122,7 @@ export class UnitManager {
       offset
     );
     rigidbody.setPosition(gameObject.transform.position);
-    // gameObject.addComponent(DebugMesh, rigidbody, parent);
+    gameObject.addComponent(DebugMesh, rigidbody, parent);
     gameObjectManager.registerCollider(rigidbody.collider.handle, gameObject);
 
     const stats = gameObject.addComponent(UnitStats, 100, 10, 25, 40);

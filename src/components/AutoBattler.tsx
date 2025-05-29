@@ -146,24 +146,6 @@ const AutoBattler: React.FC = () => {
         alert("Placement grid not ready.");
         return false;
       }
-      const tileSize = placementRef.current.getTileSize();
-      const gridRows = gridPositions.length;
-
-      // Example: Player 1 uses bottom half, Player 2 uses top half
-      // This needs to be adapted to your actual grid layout and player orientations
-      const halfPointRow = Math.floor(gridRows / 2);
-      const worldZPosition = position.z;
-      // Determine player's allowed rows based on their ID and grid setup
-      // This logic might need to be more sophisticated depending on how grid positions map to world coordinates
-      // For simplicity, assuming player 1 is on one side of z=0 and player 2 on the other.
-      // This is a placeholder and needs to match your `UnitPlacementSystem`'s logic for player sides.
-      // const playerAllowedMinZ = pId === 1 ? -Infinity : 0; // Example
-      // const playerAllowedMaxZ = pId === 1 ? 0 : Infinity;  // Example
-
-      // if (worldZPosition < playerAllowedMinZ || worldZPosition >= playerAllowedMaxZ) {
-      //    alert("You can only place units on your side of the board!");
-      //    return false;
-      // }
 
       if (player.gold < blueprint.cost) {
         alert("Not enough gold!");
@@ -264,6 +246,7 @@ const AutoBattler: React.FC = () => {
         sceneRef.current &&
         worldRef.current &&
         unitManagerRef.current &&
+        placementRef.current &&
         gameObjectManagerRef.current && (
           <BuyMenuContainer
             players={players}

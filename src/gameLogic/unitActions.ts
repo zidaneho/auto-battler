@@ -56,7 +56,7 @@ export const spawnSingleUnit = ({
     position,
     gameObjectManager,
     scene,
-    `${blueprint.name}_${Date.now()}_P${playerIdToSpawn}`, // More unique name
+    `${blueprint.name}_P${playerIdToSpawn}`, // More unique name
     modelData, // Pass the full modelData object
     world,
     blueprint.collider.offset.clone(),

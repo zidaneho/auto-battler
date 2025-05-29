@@ -19,52 +19,6 @@ interface Props {
   tileSize?: number;
 }
 
-export const fillUnitOnGrid = ({
-  unitType,
-  playerId,
-  scene,
-  world,
-  unitManager,
-  gameObjectManager,
-  gridPositions,
-}: {
-  unitType: "knight1" | "priest1" | "archer1";
-  playerId: number;
-  scene: THREE.Scene;
-  world: RAPIER.World;
-  unitManager: UnitManager;
-  gameObjectManager: GameObjectManager;
-  gridPositions: THREE.Vector3[][];
-}) => {
-  const model = useModelStore.getState().models[unitType];
-  if (!model || !model.gltf) {
-    console.warn(`Model for ${unitType} not loaded`);
-    return;
-  }
-
-  const offset = new THREE.Vector3(0, 0.8, 0);
-  const colliderSize = new THREE.Vector3(0.4, 1.5, 0.4);
-
-  for (let x = 0; x < gridPositions.length; x++) {
-    for (let z = 0; z < gridPositions[x].length; z++) {
-      const pos = gridPositions[x][z];
-      const unit = unitManager.createUnit(
-        Knight,
-        pos,
-        gameObjectManager,
-        scene,
-        unitType,
-        model,
-        world,
-        offset,
-        colliderSize,
-        playerId
-      );
-
-      unit?.getComponent(CharacterRigidbody)?.setPosition(pos.clone());
-    }
-  }
-};
 
 export function getMaxUnits(grid: THREE.Vector3[][]): number {
   return grid[0].length * (grid.length / 2);

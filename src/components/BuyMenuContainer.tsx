@@ -36,10 +36,10 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
     return placementRef.current;
   };
 
-  const getOccupiedSlots = (pId: number): THREE.Vector3[] => {
-    const player = players.find((p) => p.id === pId);
-    if (!player) return [];
-    return player.units.map((unit) => unit.gameObject.transform.position);
+  const getOccupiedSlots = (): THREE.Vector3[] => {
+    return players.flatMap((p) =>
+      p.units.map((unit) => unit.gameObject.transform.position)
+    );
   };
 
   // Check if grid positions are available, as BuyMenu might depend on them implicitly or explicitly
@@ -60,7 +60,7 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
           blueprints={allUnitBlueprints} // Assuming this is the global list of blueprints
           onPurchase={onPurchaseUnit}
           getPlacementSystem={getPlayerPlacementSystem}
-          getOccupiedSlots={() => getOccupiedSlots(player.id)} // Pass player-specific occupied slots
+          getOccupiedSlots={() => getOccupiedSlots()} // Pass player-specific occupied slots
           maxUnitsPerPlayer={maxUnitsPerPlayer}
         />
       ))}

@@ -13,7 +13,7 @@ interface BuyMenuProps {
     playerId: number
   ) => boolean; // Callback to handle purchase, returns true if successful
   getPlacementSystem: () => UnitPlacementSystemHandle | null; // Gets the player's grid system
-  getOccupiedSlots: (playerId: number) => THREE.Vector3[]; // Gets currently occupied slots by the player
+  getOccupiedSlots: () => THREE.Vector3[]; // Gets currently occupied slots by the player
   maxUnitsPerPlayer: number; // Maximum units a player can have
 }
 
@@ -37,7 +37,7 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       return;
     }
 
-    const occupiedSlots = getOccupiedSlots(playerId);
+    const occupiedSlots = getOccupiedSlots();
     if (occupiedSlots.length >= maxUnitsPerPlayer) {
       alert("Your board is full! Cannot buy more units.");
       return;
@@ -52,19 +52,41 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
     let availablePosition: THREE.Vector3 | null = null;
 
     // Find the first available slot on the player's grid
-    for (const row of gridPositions) {
-      for (const cellPosition of row) {
-        const isOccupied = occupiedSlots.some(
-          (occupiedPos) =>
-            Math.abs(occupiedPos.x - cellPosition.x) < 0.1 && // Compare with tolerance
-            Math.abs(occupiedPos.z - cellPosition.z) < 0.1
-        );
-        if (!isOccupied) {
-          availablePosition = cellPosition;
-          break;
+    console.log(playerId);
+    if (playerId == 1) {
+      for (let i = 0; i < gridPositions.length / 2; i++) {
+        for (const cellPosition of gridPositions[i]) {
+          const isOccupied = occupiedSlots.some(
+            (occupiedPos) =>
+              Math.abs(occupiedPos.x - cellPosition.x) < 0.1 && // Compare with tolerance
+              Math.abs(occupiedPos.z - cellPosition.z) < 0.1
+          );
+          if (!isOccupied) {
+            availablePosition = cellPosition;
+            break;
+          }
         }
+        if (availablePosition) break;
       }
-      if (availablePosition) break;
+    } else {
+      for (
+        let i = gridPositions.length - 1;
+        i >= gridPositions.length / 2;
+        i--
+      ) {
+        for (const cellPosition of gridPositions[i]) {
+          const isOccupied = occupiedSlots.some(
+            (occupiedPos) =>
+              Math.abs(occupiedPos.x - cellPosition.x) < 0.1 && // Compare with tolerance
+              Math.abs(occupiedPos.z - cellPosition.z) < 0.1
+          );
+          if (!isOccupied) {
+            availablePosition = cellPosition;
+            break;
+          }
+        }
+        if (availablePosition) break;
+      }
     }
 
     if (!availablePosition) {
@@ -80,11 +102,17 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
 
     if (purchaseSuccessful) {
       console.log(
-        `Player ${playerId} purchased ${blueprint.name} for ${blueprint.cost}. Placed at ${availablePosition.x.toFixed(2)}, ${availablePosition.z.toFixed(2)}`
+        `Player ${playerId} purchased ${blueprint.name} for ${
+          blueprint.cost
+        }. Placed at ${availablePosition.x.toFixed(
+          2
+        )}, ${availablePosition.z.toFixed(2)}`
       );
     } else {
       // onPurchase should handle specific error alerts if needed
-      console.warn(`Purchase of ${blueprint.name} failed for Player ${playerId}.`);
+      console.warn(
+        `Purchase of ${blueprint.name} failed for Player ${playerId}.`
+      );
     }
   };
 
@@ -107,7 +135,7 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       }}
     >
       {blueprints.map((bp) => {
-        const occupiedSlotsCount = getOccupiedSlots(playerId).length;
+        const occupiedSlotsCount = getOccupiedSlots().length;
         const canAfford = playerGold >= bp.cost;
         const boardHasSpace = occupiedSlotsCount < maxUnitsPerPlayer;
         const isDisabled = !canAfford || !boardHasSpace;

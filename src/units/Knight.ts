@@ -59,6 +59,15 @@ export class Knight extends Unit {
             return;
           }
 
+          if (this.target != null && this.target.healthComponent.isAlive()) {
+            const result = new THREE.Vector3();
+            const vector = result.subVectors(
+              this.target.gameObject.transform.position,
+              this.gameObject.transform.position
+            );
+            this.gameObject.lookAt(vector, this.forward);
+          }
+
           this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
           this.attackTimer += delta;
 
