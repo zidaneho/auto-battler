@@ -1,8 +1,20 @@
-import { useEffect } from "react";
-import { UnitManager } from "../units/UnitManager"; // Adjust path
-// import { GameObjectManager } from "../ecs/GameObjectManager"; // Not directly used for removal here, but for context
-import { Player } from "../types/gameTypes"; // Adjust path
-import { clearBoardAndUnitsGlobally } from "../gameLogic/playerActions"; // Adjust path
+import { useEffect, useState, useCallback, useRef } from "react"; // Added useState and useRef
+import { UnitManager } from "../units/UnitManager";
+import { Player } from "../types/gameTypes";
+import { ENEMY_TEAM_ID, spawnEnemyWave } from "../gameLogic/enemySpawner"; // Import spawnEnemyWave
+import { GameObjectManager } from "@/ecs/GameObjectManager";
+import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
+import { Scene } from "three";
+import { World } from "@dimforge/rapier3d";
+import { ProjectileManager } from "@/projectiles/ProjectileManager";
+import { getWaveDefinition } from "../gameLogic/waveDefinitions";
+
+// Helper function to calculate budget (can be moved to a separate file if complex)
+const calculateBudgetForWave = (round: number): number => {
+  const baseBudget = 2; // Min budget
+  const budgetPerRound = 1;
+  return baseBudget + (round - 1) * budgetPerRound;
+};
 
 export const useRoundManager = (
   isGameActive: boolean,
@@ -10,23 +22,43 @@ export const useRoundManager = (
   setRoundState: React.Dispatch<
     React.SetStateAction<"setup" | "battle" | "end">
   >,
-  currentRound: number, // Only for logging or display, not directly set by this hook
+  currentRound: number,
   setCurrentRound: React.Dispatch<React.SetStateAction<number>>,
-  roundTimer: number, // Only for display, not directly set by this hook
+  roundTimer: number,
   setRoundTimer: React.Dispatch<React.SetStateAction<number>>,
-  setPlayers: React.Dispatch<React.SetStateAction<Player[]>>,
-  unitManagerRef: React.RefObject<UnitManager | null>
-  // gameObjectManagerRef: React.RefObject<GameObjectManager | null> // Pass if directly needed by clearBoardAndUnitsGlobally
+  player: Player | undefined,
+  setPlayer: React.Dispatch<React.SetStateAction<Player | undefined>>,
+  unitManagerRef: React.RefObject<UnitManager | null>,
+  gameObjectManagerRef: React.RefObject<GameObjectManager | null>,
+  placementRef: React.RefObject<UnitPlacementSystemHandle | null>,
+  sceneRef: React.RefObject<Scene | null>,
+  worldRef: React.RefObject<World | null>,
+  projectileManagerRef: React.RefObject<ProjectileManager | null>,
+  setIsGameActive: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
-  // Round Timer and State Transitions
+  const SETUP_TIME = 30; // seconds
+  const BATTLE_TIME = 60; // seconds
+  const END_PHASE_TIME = 5; // seconds
+
+  const [hasSpawnedForCurrentSetup, setHasSpawnedForCurrentSetup] =
+    useState(false);
+  // Ref to track if the outcome for the current "end" phase has been processed
+  const outcomeProcessedThisEndPhaseRef = useRef(false);
+
+  // Effect for managing round timers and state transitions
   useEffect(() => {
-    if (!isGameActive) return;
+    if (!isGameActive || !player) return;
 
     let intervalId: NodeJS.Timeout | undefined;
 
-    if (roundState === "battle" && unitManagerRef.current) {
-      unitManagerRef.current.setTargets();
-      unitManagerRef.current.playAllUnits();
+    if (roundState === "battle") {
+      if (unitManagerRef.current) {
+        console.log(
+          "Round Manager: Setting targets and playing all units for battle."
+        );
+        unitManagerRef.current.setTargets();
+        unitManagerRef.current.playAllUnits();
+      }
     }
 
     if (roundState === "setup" || roundState === "battle") {
@@ -34,53 +66,201 @@ export const useRoundManager = (
         setRoundTimer((prev) => {
           if (prev <= 1) {
             if (roundState === "setup") {
+              console.log(
+                "Round Manager: Setup time ended. Transitioning to Battle."
+              );
               setRoundState("battle");
-              return 15; // Reset timer for battle (or a config value)
+              return BATTLE_TIME;
             } else if (roundState === "battle") {
+              console.log(
+                "Round Manager: Battle time ended. Transitioning to End phase."
+              );
               setRoundState("end");
-              return 0; // Timer for end phase (or a config value)
+              return END_PHASE_TIME;
             }
           }
           return prev - 1;
         });
       }, 1000);
     }
+
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [roundState, isGameActive, setRoundTimer, setRoundState, unitManagerRef]);
-
-  // End of Round Logic (Cleanup and Next Round Setup)
-  useEffect(() => {
-    if (roundState !== "end" || !isGameActive) return;
-
-    // Award gold
-    setPlayers(
-      (prev) => prev.map((p) => ({ ...p, gold: p.gold + 20 })) // Example gold income
-    );
-
-    // Clear units from managers and React state
-    if (unitManagerRef.current) {
-      clearBoardAndUnitsGlobally(unitManagerRef.current, setPlayers);
-    }
-
-    // Transition to next round's setup
-    const timeoutId = setTimeout(() => {
-      setCurrentRound((r) => r + 1);
-      setRoundState("setup");
-      setRoundTimer(30); // Reset timer for setup (or a config value)
-      console.log(`Starting Round ${currentRound + 1} Setup`);
-    }, 3000); // Delay before starting next round setup
-
-    return () => clearTimeout(timeoutId);
   }, [
     roundState,
     isGameActive,
-    setPlayers,
+    player,
+    setRoundTimer,
+    setRoundState,
+    unitManagerRef,
+    BATTLE_TIME,
+    END_PHASE_TIME,
+  ]);
+
+  // Effect to reset spawn and outcome flags when entering a new setup phase
+  useEffect(() => {
+    if (roundState === "setup") {
+      console.log(
+        `Round Manager: Entering Setup for Round ${currentRound}. Resetting flags.`
+      );
+      setHasSpawnedForCurrentSetup(false);
+      outcomeProcessedThisEndPhaseRef.current = false; // Reset outcome processed flag
+    }
+  }, [roundState, currentRound]);
+
+  // Effect for Spawning Enemies during Setup Phase
+  useEffect(() => {
+    if (
+      isGameActive &&
+      roundState === "setup" &&
+      player &&
+      !hasSpawnedForCurrentSetup
+    ) {
+      if (
+        sceneRef.current &&
+        worldRef.current &&
+        unitManagerRef.current &&
+        gameObjectManagerRef.current &&
+        placementRef.current
+      ) {
+        console.log(
+          `Round Manager: Spawning enemies for Round ${currentRound} (Setup Phase).`
+        );
+        const budget = calculateBudgetForWave(currentRound);
+        spawnEnemyWave({
+          budget,
+          currentRound,
+          scene: sceneRef.current,
+          world: worldRef.current,
+          unitManager: unitManagerRef.current,
+          gameObjectManager: gameObjectManagerRef.current,
+          projectileManager: projectileManagerRef.current,
+          placementRef: placementRef,
+        });
+        setHasSpawnedForCurrentSetup(true);
+      } else {
+        console.warn(
+          "Round Manager: Missing critical refs, cannot spawn enemies during setup."
+        );
+      }
+    }
+  }, [
+    isGameActive,
+    roundState,
+    currentRound,
+    player,
+    hasSpawnedForCurrentSetup,
+    sceneRef,
+    worldRef,
+    unitManagerRef,
+    gameObjectManagerRef,
+    projectileManagerRef,
+    placementRef,
+  ]);
+
+  // Effect for handling the end of a round (win/loss, cleanup, next round)
+  useEffect(() => {
+    // Ensure this logic only runs once per "end" phase instance
+    if (
+      roundState !== "end" ||
+      !isGameActive ||
+      !player ||
+      outcomeProcessedThisEndPhaseRef.current
+    ) {
+      return;
+    }
+
+    console.log(
+      `Round Manager: Round ${currentRound} ended. Determining outcome.`
+    );
+    outcomeProcessedThisEndPhaseRef.current = true; // Mark outcome as being processed
+
+    let playerWon = false;
+    if (unitManagerRef.current && player) {
+      // Ensure player is defined
+      const allUnits = unitManagerRef.current.getAllUnits();
+      const playerUnitsAlive = allUnits.filter(
+        (u) => u.teamId === player.id && u.healthComponent?.isAlive()
+      ).length;
+      const enemyUnitsAlive = allUnits.filter(
+        (u) => u.teamId === ENEMY_TEAM_ID && u.healthComponent?.isAlive()
+      ).length;
+
+      console.log(
+        `Player units alive: ${playerUnitsAlive}, Enemy units alive: ${enemyUnitsAlive}`
+      );
+
+      if (playerUnitsAlive > 0 && enemyUnitsAlive === 0) {
+        playerWon = true;
+      } else {
+        // Covers playerUnitsAlive === 0 OR (playerUnitsAlive > 0 && enemyUnitsAlive > 0)
+        playerWon = false;
+      }
+    } else {
+      console.warn(
+        "Round Manager: UnitManager or Player not available for win/loss check during 'end' phase. Assuming loss."
+      );
+      playerWon = false; // Default to loss if refs are missing
+    }
+
+    // Clear units from the board and manager (happens before win/loss specific actions)
+    // This state update will cause a re-render, but outcomeProcessedThisEndPhaseRef.current will prevent re-processing.
+    if (unitManagerRef.current && gameObjectManagerRef.current) {
+      console.log("Round Manager: Clearing all units from board.");
+      unitManagerRef.current.getAllUnits().forEach((unit) => {
+        if (unit.gameObject) {
+          unit.gameObject.markedForRemoval = true;
+        }
+      });
+      unitManagerRef.current.clearAllUnits();
+    }
+    // Clear units from player state
+    setPlayer((prevPlayer) =>
+      prevPlayer ? { ...prevPlayer, units: [] } : undefined
+    );
+
+    if (playerWon) {
+      console.log(`Round Manager: Player won Round ${currentRound}.`);
+      const waveDef = getWaveDefinition(currentRound);
+      const goldReward = waveDef?.goldReward || 10 * currentRound;
+
+      // Award gold - this setPlayer call will also trigger a re-render.
+      setPlayer((prevPlayer) =>
+        prevPlayer
+          ? { ...prevPlayer, gold: prevPlayer.gold + goldReward }
+          : undefined
+      );
+
+      const nextRoundTimeoutId = setTimeout(() => {
+        setCurrentRound((r) => r + 1);
+        setRoundState("setup"); // This will trigger the useEffect to reset outcomeProcessedThisEndPhaseRef
+        setRoundTimer(SETUP_TIME);
+        console.log(`Round Manager: Starting Round ${currentRound + 1} Setup.`);
+      }, END_PHASE_TIME * 1000);
+
+      return () => clearTimeout(nextRoundTimeoutId);
+    } else {
+      console.log(
+        `Round Manager: Player lost Round ${currentRound}. Game Over.`
+      );
+      alert(`Game Over! You reached Round ${currentRound}.`);
+      setIsGameActive(false);
+    }
+  }, [
+    roundState, // Primary trigger
+    isGameActive,
+    player,
+    currentRound,
+    unitManagerRef,
+    gameObjectManagerRef,
+    setPlayer,
     setCurrentRound,
     setRoundState,
     setRoundTimer,
-    unitManagerRef,
-    currentRound,
+    setIsGameActive,
+    SETUP_TIME,
+    END_PHASE_TIME,
+    // outcomeProcessedThisEndPhaseRef is a ref, not needed in deps
   ]);
 };

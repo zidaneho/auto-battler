@@ -146,6 +146,7 @@ export class UnitManager {
   }
   playAllUnits(): void {
     this.units.forEach((unit: Unit) => {
+     
       unit.enabled = true;
     });
   }
@@ -186,6 +187,15 @@ export class UnitManager {
       }
     });
     unit.target = target;
+  }
+  getAliveUnits(playerId: number) {
+    let count = 0;
+    this.units.forEach((unit:Unit) => {
+      if (unit.teamId == playerId && unit.healthComponent.health >= 0) {
+        count ++;
+      }
+    })
+    return count;
   }
   update(): void {
     this.units.forEach((unit: Unit) => {

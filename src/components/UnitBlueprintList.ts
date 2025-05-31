@@ -12,8 +12,8 @@ export const knightBlueprint: UnitBlueprint = {
   stats: {
     moveSpeed: 1,
     attackSpeed: 1,
-    health: 150,
-    attack: 10,
+    health: 20,
+    attack: 5,
     healingPower: 0,
   },
   collider: {
@@ -29,8 +29,8 @@ export const archerBlueprint: UnitBlueprint = {
   stats: {
     moveSpeed: 1,
     attackSpeed: 1,
-    health: 150,
-    attack: 10,
+    health: 10,
+    attack: 5,
     healingPower: 0,
   },
   collider: {
@@ -45,10 +45,10 @@ export const priestBlueprint: UnitBlueprint = {
   cost: 50,
   stats: {
     moveSpeed: 1,
-    attackSpeed: 0.7,
-    health: 150,
-    attack: 10,
-    healingPower: 0,
+    attackSpeed: 1,
+    health: 10,
+    attack: 3,
+    healingPower: 4,
   },
   collider: {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
