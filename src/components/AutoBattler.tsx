@@ -91,21 +91,21 @@ const AutoBattler: React.FC = () => {
   // Ensure useRoundManager is adapted for single player and receives all necessary refs
   useRoundManager(
     isGameActive,
+    setIsGameActive,
     roundState,
     setRoundState,
     currentRound,
     setCurrentRound,
     roundTimer,
     setRoundTimer,
-    player, // Pass single player
-    setPlayer, // Pass single player setter
+    player,
+    setPlayer,
     unitManagerRef,
-    gameObjectManagerRef, // Pass for cleanup logic if needed by useRoundManager
-    placementRef, // Pass if useRoundManager needs grid info (e.g. for win conditions)
-    sceneRef, // Pass if useRoundManager directly interacts with scene
-    worldRef, // Pass if useRoundManager directly interacts with physics
-    projectileManagerRef, // Pass if useRoundManager needs it
-    setIsGameActive // Allow round manager to end the game
+    gameObjectManagerRef,
+    placementRef,
+    sceneRef,
+    worldRef,
+    projectileManagerRef
   );
 
 

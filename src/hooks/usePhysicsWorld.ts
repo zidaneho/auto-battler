@@ -26,7 +26,7 @@ export const usePhysicsWorld = (
       const goManager = new GameObjectManager(world);
       gameObjectManagerRef.current = goManager;
 
-      unitManagerRef.current = new UnitManager();
+      unitManagerRef.current = new UnitManager(goManager);
 
       projectileManagerRef.current = new ProjectileManager(
         goManager,

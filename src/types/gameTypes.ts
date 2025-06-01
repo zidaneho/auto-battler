@@ -10,6 +10,7 @@ export interface Player {
   id: number;
   gold: number;
   units: PlayerUnitInstance[];
+  lastBattleWon?:boolean
   // board: any[]; // If 'board' was intended to be part of player state, define its type here
   // It was cleared in clearBoardAndUnits but not explicitly defined in Player interface.
   // For now, I'm commenting it out based on the provided Player interface.

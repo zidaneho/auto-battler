@@ -30,7 +30,7 @@ export const archerBlueprint: UnitBlueprint = {
     moveSpeed: 1,
     attackSpeed: 1,
     health: 10,
-    attack: 5,
+    attack: 3,
     healingPower: 0,
   },
   collider: {

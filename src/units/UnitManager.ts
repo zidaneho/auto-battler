@@ -17,9 +17,11 @@ import { GameObjectManager } from "@/ecs/GameObjectManager";
 
 export class UnitManager {
   units: SafeArray<Unit>;
+  goManager: GameObjectManager;
 
-  constructor() {
+  constructor(gameObjectManager: GameObjectManager) {
     this.units = new SafeArray();
+    this.goManager = gameObjectManager;
   }
 
   instantiateUnit(
@@ -132,6 +134,7 @@ export class UnitManager {
   }
   removeUnit(unit: Unit): void {
     this.units.remove(unit);
+    this.goManager.removeGameObject(unit.gameObject);
   }
   getAllUnits(): Unit[] {
     const allUnits: Unit[] = [];
@@ -142,11 +145,15 @@ export class UnitManager {
   clearAllUnits(): void {
     // Re-initializing the SafeArray is often the safest way to clear it,
     // especially if its remove operations are deferred or complex.
+    this.units.forEach((unit: Unit) => {
+      if (unit.gameObject != null) {
+        this.goManager.removeGameObject(unit.gameObject);
+      }
+    });
     this.units = new SafeArray();
   }
   playAllUnits(): void {
     this.units.forEach((unit: Unit) => {
-     
       unit.enabled = true;
     });
   }
@@ -190,11 +197,11 @@ export class UnitManager {
   }
   getAliveUnits(playerId: number) {
     let count = 0;
-    this.units.forEach((unit:Unit) => {
-      if (unit.teamId == playerId && unit.healthComponent.health >= 0) {
-        count ++;
+    this.units.forEach((unit: Unit) => {
+      if (unit.teamId == playerId && unit.healthComponent.health > 0) {
+        count++;
       }
-    })
+    });
     return count;
   }
   update(): void {
