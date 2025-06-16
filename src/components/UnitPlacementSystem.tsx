@@ -1,4 +1,3 @@
-import RAPIER from "@dimforge/rapier3d";
 import React, {
   useEffect,
   useRef,
@@ -6,11 +5,6 @@ import React, {
   forwardRef,
 } from "react";
 import * as THREE from "three";
-import { UnitManager } from "@/units/UnitManager";
-import { GameObjectManager } from "../ecs/GameObjectManager";
-import { CharacterRigidbody } from "../physics/CharacterRigidbody";
-import { Knight } from "@/units/Knight";
-import { useModelStore } from "./ModelStore";
 
 interface Props {
   scene: THREE.Scene;
@@ -19,35 +13,95 @@ interface Props {
   tileSize?: number;
 }
 
+// The GridTile class you created
+export class GridTile {
+  row: number;
+  col: number;
+  position: THREE.Vector3;
+  isOccupied: boolean;
 
-export function getMaxUnits(grid: THREE.Vector3[][]): number {
-  return grid[0].length * (grid.length / 2);
+  constructor(row: number, col: number, position: THREE.Vector3) {
+    this.row = row;
+    this.col = col;
+    this.position = position.clone();
+    this.isOccupied = false;
+  }
+}
+
+export function getMaxUnits(grid: GridTile[][]): number {
+  let count = 0;
+  for (let i = 0; i < grid.length; i++) {
+    count += grid[i].length;
+  }
+  return count;
 }
 export interface UnitPlacementSystemHandle {
-  getGridPositions: () => THREE.Vector3[][];
+  getGridTiles: () => GridTile[][]; // CHANGED: To return the rich tile objects
   getTileSize: () => number;
+  getGrid(position: THREE.Vector3): GridTile | null;
+  markOccupied: (
+    tileRow: number,
+    tileCol: number,
+    occupiedStatus: boolean
+  ) => void; // CHANGED: Simplified signature
 }
 
 export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
   ({ scene, position, gridSize = 5, tileSize = 1 }, ref) => {
     const gridRef = useRef<THREE.Group | null>(null);
-    const gridPositionsRef = useRef<THREE.Vector3[][]>([]);
+    // CHANGE: The grid is now stored as a 2D array of GridTile objects.
+    const gridTilesRef = useRef<GridTile[][]>([]);
+
+    const validLength = tileSize;
 
     useImperativeHandle(ref, () => ({
-      getGridPositions: () => gridPositionsRef.current,
+      getGridTiles: () => gridTilesRef.current, // CHANGED: Expose the GridTile array
       getTileSize: () => tileSize,
+      getGrid(position: THREE.Vector3): GridTile | null {
+        let closestLength = Infinity;
+        let closestTile: GridTile | undefined;
+
+        // CHANGE: Iterate over the GridTile objects
+        gridTilesRef.current.flat().forEach((tile) => {
+          const distanceTo = position.distanceTo(tile.position);
+          if (distanceTo < closestLength) {
+            closestLength = distanceTo;
+            closestTile = tile;
+          }
+        });
+
+        if (closestTile !== undefined && closestLength <= validLength) {
+          return closestTile;
+        }
+
+        return null;
+      },
+      // CHANGE: This now updates both the tile object and the lookup dictionary
+      markOccupied: (
+        tileRow: number,
+        tileCol: number,
+        occupiedStatus: boolean
+      ) => {
+        // Find the tile in our grid and update its personal occupied status
+        if (tileRow < 0 || tileRow > gridTilesRef.current.length) return;
+        if (tileCol < 0 || tileCol > gridTilesRef.current[tileRow].length)
+          return;
+        gridTilesRef.current[tileRow][tileCol].isOccupied = occupiedStatus;
+
+        console.log(gridTilesRef.current[tileRow][tileCol], " hello");
+      },
     }));
 
     useEffect(() => {
       if (!scene) return;
-
       const gridGroup = new THREE.Group();
       const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
 
-      const positions: THREE.Vector3[][] = [];
-
+      // CHANGE: This will now be an array of GridTile arrays
+      const newGrid: GridTile[][] = [];
+      const offset = (gridSize * tileSize) / 2;
       for (let x = 0; x < gridSize; x++) {
-        const row: THREE.Vector3[] = [];
+        const row: GridTile[] = []; // This row will hold GridTile objects
 
         for (let z = 0; z < gridSize; z++) {
           const worldX = x * tileSize + tileSize / 2;
@@ -58,22 +112,24 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
             new THREE.Vector3(tileSize / 2, 0, -tileSize / 2),
             new THREE.Vector3(tileSize / 2, 0, tileSize / 2),
             new THREE.Vector3(-tileSize / 2, 0, tileSize / 2),
-            new THREE.Vector3(-tileSize / 2, 0, -tileSize / 2), // close loop
+            new THREE.Vector3(-tileSize / 2, 0, -tileSize / 2),
           ]);
 
           const line = new THREE.Line(squareGeometry, material);
-          line.position.set(worldX - gridSize, 0.01, worldZ);
-
+          line.position.set(worldX - offset, 0.01, worldZ - offset);
           gridGroup.add(line);
 
           const gridPos = line.position.clone().add(position);
-          row.push(gridPos);
-        }
 
-        positions.push(row);
+          // CHANGE: Create a new GridTile instance and push it to the row
+          const tile = new GridTile(x, z, gridPos);
+          row.push(tile);
+        }
+        newGrid.push(row);
       }
 
-      gridPositionsRef.current = positions;
+      gridTilesRef.current = newGrid; // Set the main ref to our new grid of tiles
+
       gridGroup.position.set(position.x, position.y, position.z);
       scene.add(gridGroup);
       gridRef.current = gridGroup;

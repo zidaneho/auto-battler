@@ -1,7 +1,7 @@
 import React from "react";
 import * as THREE from "three";
 import { UnitBlueprint } from "./UnitBlueprint";
-import { UnitPlacementSystemHandle } from "./UnitPlacementSystem";
+import { GridTile, UnitPlacementSystemHandle } from "./UnitPlacementSystem";
 
 interface BuyMenuProps {
   playerId: number;
@@ -9,11 +9,11 @@ interface BuyMenuProps {
   blueprints: UnitBlueprint[];
   onPurchase: (
     blueprint: UnitBlueprint,
-    position: THREE.Vector3,
+    tile: GridTile,
     playerId: number
   ) => boolean; // Callback to handle purchase, returns true if successful
   getPlacementSystem: () => UnitPlacementSystemHandle | null; // Gets the player's grid system
-  getOccupiedSlots: () => THREE.Vector3[]; // Gets currently occupied slots by the player
+  occupiedSlots: THREE.Vector3[]; // Gets currently occupied slots by the player
   maxUnitsPerPlayer: number; // Maximum units a player can have
 }
 
@@ -23,7 +23,7 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
   blueprints,
   onPurchase,
   getPlacementSystem,
-  getOccupiedSlots,
+  occupiedSlots,
   maxUnitsPerPlayer,
 }) => {
   const handleBuyUnit = (blueprint: UnitBlueprint) => {
@@ -37,7 +37,6 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       return;
     }
 
-    const occupiedSlots = getOccupiedSlots();
     if (occupiedSlots.length >= maxUnitsPerPlayer) {
       alert("Your board is full! Cannot buy more units.");
       return;
@@ -48,25 +47,20 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       return;
     }
 
-    const gridPositions = placementSystem.getGridPositions(); // These are world positions
-    let availablePosition: THREE.Vector3 | null = null;
+    const gridPositions = placementSystem.getGridTiles(); // These are world positions
+    let availableTile: GridTile | null = null;
 
     // Find the first available slot on the player's grid
-    console.log(playerId);
+
     if (playerId == 1) {
       for (let i = 0; i < gridPositions.length / 2; i++) {
         for (const cellPosition of gridPositions[i]) {
-          const isOccupied = occupiedSlots.some(
-            (occupiedPos) =>
-              Math.abs(occupiedPos.x - cellPosition.x) < 0.1 && // Compare with tolerance
-              Math.abs(occupiedPos.z - cellPosition.z) < 0.1
-          );
-          if (!isOccupied) {
-            availablePosition = cellPosition;
+          if (!cellPosition.isOccupied) {
+            availableTile = cellPosition;
             break;
           }
         }
-        if (availablePosition) break;
+        if (availableTile) break;
       }
     } else {
       for (
@@ -75,28 +69,23 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
         i--
       ) {
         for (const cellPosition of gridPositions[i]) {
-          const isOccupied = occupiedSlots.some(
-            (occupiedPos) =>
-              Math.abs(occupiedPos.x - cellPosition.x) < 0.1 && // Compare with tolerance
-              Math.abs(occupiedPos.z - cellPosition.z) < 0.1
-          );
-          if (!isOccupied) {
-            availablePosition = cellPosition;
+          if (!cellPosition.isOccupied) {
+            availableTile = cellPosition;
             break;
           }
         }
-        if (availablePosition) break;
+        if (availableTile) break;
       }
     }
 
-    if (!availablePosition) {
+    if (!availableTile) {
       alert("No available slots to place the unit on your board!");
       return;
     }
 
     const purchaseSuccessful = onPurchase(
       blueprint,
-      availablePosition.clone(), // Ensure we pass a new Vector3 instance
+      availableTile, // Ensure we pass a new Vector3 instance
       playerId
     );
 
@@ -104,9 +93,9 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       console.log(
         `Player ${playerId} purchased ${blueprint.name} for ${
           blueprint.cost
-        }. Placed at ${availablePosition.x.toFixed(
+        }. Placed at ${availableTile.position.x.toFixed(
           2
-        )}, ${availablePosition.z.toFixed(2)}`
+        )}, ${availableTile.position.z.toFixed(2)}`
       );
     } else {
       // onPurchase should handle specific error alerts if needed
@@ -135,7 +124,7 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
       }}
     >
       {blueprints.map((bp) => {
-        const occupiedSlotsCount = getOccupiedSlots().length;
+        const occupiedSlotsCount = occupiedSlots.length;
         const canAfford = playerGold >= bp.cost;
         const boardHasSpace = occupiedSlotsCount < maxUnitsPerPlayer;
         const isDisabled = !canAfford || !boardHasSpace;

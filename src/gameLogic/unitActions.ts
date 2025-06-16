@@ -35,15 +35,19 @@ export const spawnSingleUnit = ({
 }: SpawnSingleUnitParams): GameObject | null => {
   const modelData = useModelStore.getState().models[blueprint.modelKey];
   if (!modelData || !modelData.gltf) {
-    console.warn(`Model ${blueprint.modelKey} not loaded in ModelStore for ${blueprint.name}.`);
+    console.warn(
+      `Model ${blueprint.modelKey} not loaded in ModelStore for ${blueprint.name}.`
+    );
     return null;
   }
 
-  const unitArgs: any[] = [playerIdToSpawn]; // Common arg: teamId. Model is handled by createUnit directly.
+  const unitArgs: any[] = [playerIdToSpawn, position]; // Common arg: teamId. Model is handled by createUnit directly.
 
   if (blueprint.unitClass === Archer) {
     if (!projectileManager) {
-      console.error("ProjectileManager is required for Archer but not provided.");
+      console.error(
+        "ProjectileManager is required for Archer but not provided."
+      );
       return null;
     }
     unitArgs.push(projectileManager);
@@ -86,11 +90,18 @@ export const spawnSingleUnit = ({
       rb?.setPosition(position.clone());
 
       console.log(
-        `Spawned ${blueprint.name} for player ${playerIdToSpawn} at ${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`
+        `Spawned ${
+          blueprint.name
+        } for player ${playerIdToSpawn} at ${position.x.toFixed(
+          2
+        )}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)}`
       );
       return unitGameObject;
     } else {
-      console.error("Failed to get unit component after creation for", blueprint.name);
+      console.error(
+        "Failed to get unit component after creation for",
+        blueprint.name
+      );
       unitGameObject.markedForRemoval = true;
       return null;
     }

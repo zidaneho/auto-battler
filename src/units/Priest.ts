@@ -10,8 +10,8 @@ export class Priest extends Unit {
   attackClipLength: number | undefined;
   damagePoint: number;
 
-  constructor(gameObject: GameObject, model: any, teamId: number) {
-    super(gameObject, model, teamId);
+  constructor(gameObject: GameObject, model: any, teamId: number,spawnPosition:THREE.Vector3) {
+    super(gameObject, model, teamId,spawnPosition);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {

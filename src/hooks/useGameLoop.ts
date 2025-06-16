@@ -10,7 +10,6 @@ export const useGameLoop = (
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
-    controls: OrbitControls;
   } | null>,
   worldRef: React.RefObject<RAPIER.World | null>,
   gameObjectManagerRef: React.RefObject<GameObjectManager | null>,
@@ -30,7 +29,7 @@ export const useGameLoop = (
 
     if (!isGameActive && roundState !== "setup") return;
 
-    const { scene, camera, renderer, controls } = threeRef.current;
+    const { scene, camera, renderer } = threeRef.current;
     const world = worldRef.current;
     const gameObjectManager = gameObjectManagerRef.current;
     const unitManager = unitManagerRef.current;
@@ -46,7 +45,6 @@ export const useGameLoop = (
           unitManager.update();
         }
       }
-      controls.update();
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(render);
     };

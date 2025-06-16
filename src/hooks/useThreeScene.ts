@@ -11,10 +11,10 @@ export interface ThreeSceneRef {
 
 export const useThreeScene = (
   containerRef: React.RefObject<HTMLDivElement | null>,
-  isLoaded: boolean // To ensure setup runs after assets potentially needed by scene are ready
+  isLoaded: boolean
 ) => {
   const threeRef = useRef<ThreeSceneRef | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null); // Also export sceneRef for direct use if needed
+  const sceneRef = useRef<THREE.Scene | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !isLoaded) return;
@@ -30,6 +30,7 @@ export const useThreeScene = (
       1000
     );
     camera.position.set(0, 15, 20);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(
@@ -39,8 +40,12 @@ export const useThreeScene = (
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
 
+    // Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.0;
     controls.target.set(0, 0, 0);
+    controls.update();
 
     threeRef.current = { scene, camera, renderer, controls };
 
@@ -70,6 +75,7 @@ export const useThreeScene = (
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement);
       }
+      controls.dispose();
       renderer.dispose();
       sceneRef.current = null;
       threeRef.current = null;

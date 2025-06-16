@@ -3,7 +3,7 @@ import * as THREE from "three";
 import BuyMenu from "@/components/BuyMenu"; // Adjust path
 import { UnitBlueprint } from "@/components/UnitBlueprint"; // Adjust path
 import { allUnitBlueprints } from "@/components/UnitBlueprintList"; // Adjust path
-import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem"; // Adjust path
+import { GridTile, UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem"; // Adjust path
 import { Player } from "@/types/gameTypes"; // Adjust path
 
 interface BuyMenuContainerProps {
@@ -15,7 +15,7 @@ interface BuyMenuContainerProps {
   maxUnitsPerPlayer: number;
   onPurchaseUnit: (
     blueprint: UnitBlueprint,
-    position: THREE.Vector3,
+    tile:GridTile,
     playerId: number
   ) => boolean;
 }
@@ -28,7 +28,7 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
   maxUnitsPerPlayer,
   onPurchaseUnit,
 }) => {
-  if (!isGameActive || roundState !== "setup") {
+  if (!isGameActive || roundState !== "setup" || !placementRef.current) {
     return null;
   }
 
@@ -36,34 +36,36 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
     return placementRef.current;
   };
 
-  const getOccupiedSlots = (): THREE.Vector3[] => {
-    return players.flatMap((p) =>
-      p.units.map((unit) => unit.gameObject.transform.position)
-    );
-  };
-
   // Check if grid positions are available, as BuyMenu might depend on them implicitly or explicitly
-  const gridPositions = placementRef.current?.getGridPositions();
+  const gridPositions = placementRef.current.getGridTiles();
   if (!gridPositions) {
-      console.warn("BuyMenuContainer: Grid positions not available from placement system.");
-      // return null; // Or handle differently if BuyMenu can operate without them
+    console.warn(
+      "BuyMenuContainer: Grid positions not available from placement system."
+    );
+    // return null; // Or handle differently if BuyMenu can operate without them
   }
-
 
   return (
     <>
-      {players.map((player) => (
-        <BuyMenu
-          key={`buy-menu-${player.id}`}
-          playerId={player.id}
-          playerGold={player.gold}
-          blueprints={allUnitBlueprints} // Assuming this is the global list of blueprints
-          onPurchase={onPurchaseUnit}
-          getPlacementSystem={getPlayerPlacementSystem}
-          getOccupiedSlots={() => getOccupiedSlots()} // Pass player-specific occupied slots
-          maxUnitsPerPlayer={maxUnitsPerPlayer}
-        />
-      ))}
+      {players.map((player) => {
+        // CHANGE: Calculate occupied slots for the current player here.
+        const occupiedSlots = player.units.map(
+          (unit) => unit.gameObject.transform.position
+        );
+
+        return (
+          <BuyMenu
+            key={`buy-menu-${player.id}`}
+            playerId={player.id}
+            playerGold={player.gold}
+            blueprints={allUnitBlueprints}
+            onPurchase={onPurchaseUnit}
+            getPlacementSystem={getPlayerPlacementSystem}
+            occupiedSlots={occupiedSlots} // CHANGE: Pass the array directly
+            maxUnitsPerPlayer={maxUnitsPerPlayer}
+          />
+        );
+      })}
     </>
   );
 };

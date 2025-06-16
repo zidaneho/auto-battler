@@ -18,10 +18,14 @@ export class Unit extends GameComponent {
   forward: THREE.Vector3;
   hasAttacked: boolean; //added hasAttacked
   fsm: FiniteStateMachine<string>;
+  //gridPosition is to save the unit's position when it gets dragged & droppped
+  gridPosition:THREE.Vector3;
 
-  constructor(gameObject: GameObject, model: any, teamId: number) {
+  constructor(gameObject: GameObject, model: any, teamId: number, spawnPosition: THREE.Vector3) {
     // Added GameObject type
     super(gameObject);
+
+    this.gridPosition = spawnPosition;
 
     //a team id of 0 means it can attack anyone
     this.teamId = teamId;

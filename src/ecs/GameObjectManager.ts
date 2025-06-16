@@ -79,30 +79,34 @@ export class GameObjectManager {
   registerCollider(handle: number, gameObject: GameObject): void {
     this.handleMap.set(handle, gameObject);
   }
+  getGameObjectFromCollider(handle: number): GameObject | undefined {
+    return this.handleMap.get(handle);
+  }
 
   update(delta: number): void {
     if (this.world == null) {
       console.log("physics world is null!");
       return;
-    }
-    this.world.step(this.eventQueue);
-    this.eventQueue.drainCollisionEvents((hA, hB, started) => {
-      const goA = this.handleMap.get(hA);
-      const goB = this.handleMap.get(hB);
+    } else {
+      this.world.step(this.eventQueue);
+      this.eventQueue.drainCollisionEvents((hA, hB, started) => {
+        const goA = this.handleMap.get(hA);
+        const goB = this.handleMap.get(hB);
 
-      if (goA) {
-        const collision = goA.getComponent(CollisionComponent);
-        if (collision) {
-          collision._notify(goB ?? null, started);
+        if (goA) {
+          const collision = goA.getComponent(CollisionComponent);
+          if (collision) {
+            collision._notify(goB ?? null, started);
+          }
         }
-      }
-      if (goB) {
-        const collision = goB.getComponent(CollisionComponent);
-        if (collision) {
-          collision._notify(goA ?? null, started);
+        if (goB) {
+          const collision = goB.getComponent(CollisionComponent);
+          if (collision) {
+            collision._notify(goA ?? null, started);
+          }
         }
-      }
-    });
+      });
+    }
 
     this.gameObjects.forEach((gameObject) => gameObject.update(delta));
 

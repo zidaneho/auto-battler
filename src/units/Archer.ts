@@ -19,10 +19,11 @@ export class Archer extends Unit {
     gameObject: GameObject,
     model: any,
     teamId: number,
+    spawnPosition:Vector3,
     projectileManager: ProjectileManager,
     projectileSpawnPoint: Vector3
   ) {
-    super(gameObject, model, teamId);
+    super(gameObject, model, teamId,spawnPosition);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {

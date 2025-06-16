@@ -39,6 +39,9 @@ export class CharacterRigidbody extends GameComponent {
 
     this._cachedVector3 = new RAPIER.Vector3(0, 0, 0);
     this.world = physics_world_ref;
+
+    const vector = new Vector3(pos.x, pos.y, pos.z).sub(this.offset);
+    this.gameObject.setPosition(vector);
   }
 
   destroy() {
@@ -59,6 +62,9 @@ export class CharacterRigidbody extends GameComponent {
     v.z = vector3.z + this.offset.z;
 
     this.body.setNextKinematicTranslation(v);
+
+    const vector = new Vector3(v.x, v.y, v.z).sub(this.offset);
+    this.gameObject.setPosition(vector);
   }
 
   move(direction: Vector3): void {
@@ -76,11 +82,8 @@ export class CharacterRigidbody extends GameComponent {
     next.z = current.z + direction.z;
 
     this.body.setNextKinematicTranslation(next);
-  }
 
-  update(delta: number): void {
-    const pos = this.body.translation();
-    const vector = new Vector3(pos.x, pos.y, pos.z).sub(this.offset);
+    const vector = new Vector3(next.x, next.y, next.z).sub(this.offset);
     this.gameObject.setPosition(vector);
   }
 }

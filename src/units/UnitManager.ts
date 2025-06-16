@@ -14,6 +14,7 @@ import { Unit } from "./Unit";
 import { UnitBlueprint } from "@/components/UnitBlueprint";
 import { useModelStore } from "@/components/ModelStore";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
+import { ClickableComponent } from "@/components/ClickableComponent";
 
 export class UnitManager {
   units: SafeArray<Unit>;
@@ -129,6 +130,8 @@ export class UnitManager {
 
     const stats = gameObject.addComponent(UnitStats, 100, 10, 25, 40);
     gameObject.addComponent(HealthComponent, stats.health);
+
+    gameObject.addComponent(ClickableComponent);
 
     return gameObject;
   }

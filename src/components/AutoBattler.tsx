@@ -8,10 +8,11 @@ import * as RAPIER from "@dimforge/rapier3d";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { UnitManager } from "@/units/UnitManager";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
-import { Archer } from "@/units/Archer"; // Used in handlePurchaseUnit
+import { Archer } from "@/units/Archer";
 import { UnitBlueprint } from "@/components/UnitBlueprint";
 import { models as globalModelList } from "@/components/meshes/ModelList";
 import {
+  GridTile,
   UnitPlacementSystem,
   UnitPlacementSystemHandle,
   getMaxUnits,
@@ -35,6 +36,7 @@ import { spawnEnemyWave, ENEMY_TEAM_ID } from "@/gameLogic/enemySpawner"; // Imp
 
 // Types
 import { Player } from "@/types/gameTypes"; // PlayerUnitInstance might not be needed directly here anymore
+import { useRaycaster } from "@/hooks/useRaycaster";
 
 const AutoBattler: React.FC = () => {
   // Single player state
@@ -108,10 +110,17 @@ const AutoBattler: React.FC = () => {
     projectileManagerRef
   );
 
+  useRaycaster(
+    threeRef,
+    worldRef,
+    gameObjectManagerRef,
+    roundState,
+    placementRef
+  );
 
   const maxUnits =
     placementRef.current && player // Ensure player exists before calculating max units for them
-      ? getMaxUnits(placementRef.current.getGridPositions()) // This might need adjustment for single player grid area
+      ? getMaxUnits(placementRef.current.getGridTiles()) // This might need adjustment for single player grid area
       : 0;
 
   const startGame = useCallback(() => {
@@ -121,6 +130,7 @@ const AutoBattler: React.FC = () => {
     }
     // Initialize player for the game
     setPlayer({ id: 1, gold: 100, units: [] }); // Example starting gold
+
     setCurrentRound(1);
     setIsGameActive(true);
     setRoundState("setup");
@@ -141,7 +151,7 @@ const AutoBattler: React.FC = () => {
   const handlePurchaseUnit = useCallback(
     (
       blueprint: UnitBlueprint,
-      position: THREE.Vector3
+      tile: GridTile
       // playerId is removed as we have a single player
     ): boolean => {
       if (!player) {
@@ -155,7 +165,7 @@ const AutoBattler: React.FC = () => {
         return false;
       }
 
-      const gridPositions = placementRef.current.getGridPositions();
+      const gridPositions = placementRef.current.getGridTiles();
       if (!gridPositions || gridPositions.length === 0) {
         alert("Placement grid not ready.");
         return false;
@@ -192,11 +202,12 @@ const AutoBattler: React.FC = () => {
         world: worldRef.current,
         unitManager: unitManagerRef.current,
         gameObjectManager: gameObjectManagerRef.current,
-        position,
+        position: tile.position,
         projectileManager: projectileManagerRef.current,
       });
 
       if (newUnitGameObject) {
+        tile.isOccupied = true;
         setPlayer((prevPlayer) => {
           if (!prevPlayer) return undefined; // Should not happen if initial check passes
           return {
@@ -217,13 +228,13 @@ const AutoBattler: React.FC = () => {
       return false;
     },
     [
-      player, // Dependency
+      player,
       sceneRef,
       worldRef,
       unitManagerRef,
       gameObjectManagerRef,
       projectileManagerRef,
-      maxUnits, // Dependency
+      maxUnits,
     ]
   );
 
@@ -272,8 +283,8 @@ const AutoBattler: React.FC = () => {
             roundState={roundState}
             placementRef={placementRef}
             maxUnitsPerPlayer={maxUnits}
-            onPurchaseUnit={(blueprint, position) =>
-              handlePurchaseUnit(blueprint, position)
+            onPurchaseUnit={(blueprint, tile) =>
+              handlePurchaseUnit(blueprint, tile)
             } // playerId removed from args
           />
         )}
