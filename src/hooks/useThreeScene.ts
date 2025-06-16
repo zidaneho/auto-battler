@@ -13,8 +13,8 @@ export const useThreeScene = (
   containerRef: React.RefObject<HTMLDivElement | null>,
   isLoaded: boolean
 ) => {
-  const threeRef = useRef<ThreeSceneRef | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
+  const threeRef = useRef<ThreeSceneRef | undefined>(undefined);
+  const sceneRef = useRef<THREE.Scene | undefined>(undefined);
 
   useEffect(() => {
     if (!containerRef.current || !isLoaded) return;
@@ -77,8 +77,8 @@ export const useThreeScene = (
       }
       controls.dispose();
       renderer.dispose();
-      sceneRef.current = null;
-      threeRef.current = null;
+      sceneRef.current = undefined;
+      threeRef.current = undefined;
     };
   }, [containerRef, isLoaded]);
 

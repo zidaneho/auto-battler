@@ -9,31 +9,22 @@ import {
   GridTile,
   UnitPlacementSystemHandle,
 } from "../components/UnitPlacementSystem";
+import { GameSystems } from "@/types/gameTypes";
 
 export const ENEMY_TEAM_ID = 2;
 
 interface EnemySpawnerParams {
   budget: number;
   currentRound: number;
-  scene: THREE.Scene;
-  world: RAPIER.World;
-  unitManager: UnitManager;
-  gameObjectManager: GameObjectManager;
-  projectileManager: ProjectileManager | null;
-  placementRef: React.RefObject<UnitPlacementSystemHandle | null>;
+  systems: GameSystems;
 }
 
 export function spawnEnemyWave({
   budget,
   currentRound,
-  scene,
-  world,
-  unitManager,
-  gameObjectManager,
-  projectileManager,
-  placementRef,
+  systems,
 }: EnemySpawnerParams) {
-  const placementSystem = placementRef?.current;
+  const placementSystem = systems?.placementSystem;
   if (!placementSystem) {
     console.error("Placement system not available for spawning enemies.");
     return;
@@ -126,7 +117,11 @@ export function spawnEnemyWave({
     if (!availableTile) {
       availableTile = getNextAvailableSlot(fallbackSlots, placementSystem);
     }
-
+    const scene = systems.scene;
+    const world = systems.world;
+    const unitManager = systems.unitManager;
+    const gameObjectManager = systems.gameObjectManager;
+    const projectileManager = systems.projectileManager;
     if (availableTile) {
       const spawnPosition = availableTile.position;
       const unitGO = spawnSingleUnit({
@@ -144,14 +139,12 @@ export function spawnEnemyWave({
         // Mark the tile as occupied using the placement system
         const tile = placementSystem.getGrid(spawnPosition);
         if (tile) {
-          placementSystem.markOccupied(tile.row,tile.col, true);
+          placementSystem.markOccupied(tile.row, tile.col, true);
         }
+
         remainingBudget -= selectedProfile.spawnCost;
         console.log(
-          `Spawned enemy: ${
-            selectedProfile.blueprint.name
-          } at (${spawnPosition.x.toFixed(2)}, ${spawnPosition.z.toFixed(
-            2
+          `Spawned enemy: ${selectedProfile.blueprint.name} at (${tile?.row}, ${tile?.col}
           )}). Budget left: ${remainingBudget}`
         );
       } else {

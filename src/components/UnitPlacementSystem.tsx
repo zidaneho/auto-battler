@@ -87,8 +87,6 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
         if (tileCol < 0 || tileCol > gridTilesRef.current[tileRow].length)
           return;
         gridTilesRef.current[tileRow][tileCol].isOccupied = occupiedStatus;
-
-        console.log(gridTilesRef.current[tileRow][tileCol], " hello");
       },
     }));
 

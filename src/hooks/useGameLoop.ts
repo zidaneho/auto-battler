@@ -10,10 +10,10 @@ export const useGameLoop = (
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     renderer: THREE.WebGLRenderer;
-  } | null>,
-  worldRef: React.RefObject<RAPIER.World | null>,
-  gameObjectManagerRef: React.RefObject<GameObjectManager | null>,
-  unitManagerRef: React.RefObject<UnitManager | null>,
+  } | undefined>,
+  worldRef: React.RefObject<RAPIER.World | undefined>,
+  gameObjectManagerRef: React.RefObject<GameObjectManager | undefined>,
+  unitManagerRef: React.RefObject<UnitManager | undefined>,
   isGameActive: boolean,
   roundState: "setup" | "battle" | "end"
 ) => {

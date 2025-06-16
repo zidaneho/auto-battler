@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 
@@ -35,7 +41,7 @@ import { spawnSingleUnit } from "@/gameLogic/unitActions";
 import { spawnEnemyWave, ENEMY_TEAM_ID } from "@/gameLogic/enemySpawner"; // Import the spawner and its ENEMY_TEAM_ID
 
 // Types
-import { Player } from "@/types/gameTypes"; // PlayerUnitInstance might not be needed directly here anymore
+import { GameSystems, Player } from "@/types/gameTypes"; // PlayerUnitInstance might not be needed directly here anymore
 import { useRaycaster } from "@/hooks/useRaycaster";
 
 const AutoBattler: React.FC = () => {
@@ -53,6 +59,25 @@ const AutoBattler: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const placementRef = useRef<UnitPlacementSystemHandle>(null);
+  const placementSystemPosition = useMemo(() => new THREE.Vector3(0, 1, 0), []);
+
+  const [systemsReady, setSystemsReady] = useState(false);
+
+  
+
+  useEffect(() => {
+    if (
+      isLoaded &&
+      player &&
+      sceneRef.current &&
+      worldRef.current &&
+      unitManagerRef.current &&
+      placementRef.current &&
+      gameObjectManagerRef.current
+    ) {
+      setSystemsReady(true); // triggers the re-render you need
+    }
+  }, [isLoaded, player]); // anyone you *know* will change
 
   // GLTF Models Loading Effect
   useEffect(() => {
@@ -89,26 +114,24 @@ const AutoBattler: React.FC = () => {
     roundState
   );
 
+  const systems: Partial<GameSystems> = {
+    unitManager: unitManagerRef.current,
+    gameObjectManager: gameObjectManagerRef.current,
+    placementSystem: placementRef.current,
+    scene: sceneRef.current,
+    world: worldRef.current,
+    projectileManager: projectileManagerRef.current,
+  };
+
   // Game Round Logic (timer, state transitions, cleanup)
   // Ensure useRoundManager is adapted for single player and receives all necessary refs
-  useRoundManager(
-    isGameActive,
+  useRoundManager(isGameActive, roundState, currentRound, player, systems, {
     setIsGameActive,
-    roundState,
     setRoundState,
-    currentRound,
     setCurrentRound,
-    roundTimer,
     setRoundTimer,
-    player,
     setPlayer,
-    unitManagerRef,
-    gameObjectManagerRef,
-    placementRef,
-    sceneRef,
-    worldRef,
-    projectileManagerRef
-  );
+  });
 
   useRaycaster(
     threeRef,
@@ -134,7 +157,6 @@ const AutoBattler: React.FC = () => {
     setCurrentRound(1);
     setIsGameActive(true);
     setRoundState("setup");
-    setRoundTimer(30); // Setup time
     console.log("Game started!");
   }, [isLoaded, unitManagerRef, gameObjectManagerRef]);
 
@@ -143,10 +165,11 @@ const AutoBattler: React.FC = () => {
       alert("Place some units before starting the battle!");
       return;
     }
+
     setRoundState("battle");
     // Timer for battle phase will be set by useRoundManager or the effect below
     console.log("Attempting to start Battle phase!");
-  }, [player]);
+  }, [player, setRoundState, setRoundTimer]);
 
   const handlePurchaseUnit = useCallback(
     (
@@ -207,7 +230,7 @@ const AutoBattler: React.FC = () => {
       });
 
       if (newUnitGameObject) {
-        tile.isOccupied = true;
+        placementRef.current.markOccupied(tile.row, tile.col, true);
         setPlayer((prevPlayer) => {
           if (!prevPlayer) return undefined; // Should not happen if initial check passes
           return {
@@ -234,7 +257,6 @@ const AutoBattler: React.FC = () => {
       unitManagerRef,
       gameObjectManagerRef,
       projectileManagerRef,
-      maxUnits,
     ]
   );
 
@@ -264,30 +286,24 @@ const AutoBattler: React.FC = () => {
         <UnitPlacementSystem
           ref={placementRef}
           scene={sceneRef.current}
-          position={new THREE.Vector3(0, 1, 0)} // Adjusted Y slightly for visibility above ground
+          position={placementSystemPosition} // Adjusted Y slightly for visibility above ground
           tileSize={2} // Ensure this matches assumptions in enemySpawner and buyMenu
           gridSize={6} // Example: 6x6 grid overall
         />
       )}
 
-      {isLoaded &&
-        player && // Ensure player exists for BuyMenu
-        sceneRef.current &&
-        worldRef.current &&
-        unitManagerRef.current &&
-        placementRef.current &&
-        gameObjectManagerRef.current && (
-          <BuyMenuContainer
-            players={player ? [player] : []} // Adapt for single player
-            isGameActive={isGameActive}
-            roundState={roundState}
-            placementRef={placementRef}
-            maxUnitsPerPlayer={maxUnits}
-            onPurchaseUnit={(blueprint, tile) =>
-              handlePurchaseUnit(blueprint, tile)
-            } // playerId removed from args
-          />
-        )}
+      {systemsReady && (
+        <BuyMenuContainer
+          players={player ? [player] : []} // Adapt for single player
+          isGameActive={isGameActive}
+          roundState={roundState}
+          placementRef={placementRef}
+          maxUnitsPerPlayer={maxUnits}
+          onPurchaseUnit={(blueprint, tile) =>
+            handlePurchaseUnit(blueprint, tile)
+          } // playerId removed from args
+        />
+      )}
     </div>
   );
 };

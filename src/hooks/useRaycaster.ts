@@ -9,13 +9,16 @@ import { useEffect } from "react";
 import * as THREE from "three";
 
 export const useRaycaster = (
-  threeRef: React.RefObject<{
-    scene: THREE.Scene;
-    camera: THREE.PerspectiveCamera;
-    renderer: THREE.WebGLRenderer;
-  } | null>,
-  worldRef: React.RefObject<RAPIER.World | null>,
-  gameObjectManager: React.RefObject<GameObjectManager | null>,
+  threeRef: React.RefObject<
+    | {
+        scene: THREE.Scene;
+        camera: THREE.PerspectiveCamera;
+        renderer: THREE.WebGLRenderer;
+      }
+    | undefined
+  >,
+  worldRef: React.RefObject<RAPIER.World | undefined>,
+  gameObjectManager: React.RefObject<GameObjectManager | undefined>,
   roundState: "setup" | "battle" | "end",
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>
 ) => {
@@ -114,10 +117,20 @@ export const useRaycaster = (
       const tile = placementRef.current.getGrid(draggableGO.transform.position);
       if (tile && !tile.isOccupied) {
         console.log(`found a valid tile! at (${tile.row},${tile.col}})`);
+        //mark old tile to be free
+        const oldTile = placementRef.current.getGrid(
+          draggableUnit.gridPosition
+        );
+        if (oldTile) {
+          console.log("marked old tile to be free");
+          placementRef.current.markOccupied(oldTile.row, oldTile.col, false);
+        }
+        //mark new tile as occupied
         placementRef.current.markOccupied(tile.row, tile.col, true);
         body.setPosition(tile.position);
         draggableUnit.gridPosition = tile.position.clone();
       } else {
+        //the tile is occupied. we swap units here
         console.log(
           `no valid grids. returning to (${draggableUnit.gridPosition.x},${draggableUnit.gridPosition.y},${draggableUnit.gridPosition.z}).`
         );

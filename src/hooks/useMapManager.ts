@@ -9,9 +9,9 @@ import { DebugMesh } from "../components/meshes/DebugMesh"; // Adjust path
 import { models as globalModelList } from "../components/meshes/ModelList"; // Adjust path
 
 export const useMapManager = (
-  threeRef: React.RefObject<{ scene: THREE.Scene } | null>,
-  worldRef: React.RefObject<RAPIER.World | null>,
-  gameObjectManagerRef: React.RefObject<GameObjectManager | null>,
+  threeRef: React.RefObject<{ scene: THREE.Scene } | undefined>,
+  worldRef: React.RefObject<RAPIER.World | undefined>,
+  gameObjectManagerRef: React.RefObject<GameObjectManager | undefined>,
   currentMap: keyof typeof globalModelList,
   isLoaded: boolean
 ) => {

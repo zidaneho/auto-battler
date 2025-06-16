@@ -20,7 +20,7 @@ interface SpawnSingleUnitParams {
   unitManager: UnitManager;
   gameObjectManager: GameObjectManager;
   position: THREE.Vector3;
-  projectileManager: ProjectileManager | null;
+  projectileManager: ProjectileManager | undefined;
 }
 
 export const spawnSingleUnit = ({

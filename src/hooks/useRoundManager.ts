@@ -1,40 +1,51 @@
 import { useEffect, useRef, useCallback } from "react";
-import { UnitManager } from "../units/UnitManager";
 import { Player } from "../types/gameTypes";
 import { ENEMY_TEAM_ID, spawnEnemyWave } from "../gameLogic/enemySpawner";
-import { GameObjectManager } from "@/ecs/GameObjectManager";
-import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
-import { Scene } from "three";
-import { World } from "@dimforge/rapier3d";
-import { ProjectileManager } from "@/projectiles/ProjectileManager";
 import { getWaveDefinition } from "../gameLogic/waveDefinitions";
+import { GameSystems } from "@/types/gameTypes";
 
-const SETUP_TIME = 30;
 const BATTLE_TIME = 60;
 const END_TIME = 5;
 
-const calculateBudget = (round: number) => 2 + (round - 1);
+const calculateBudget = (round: number) => 2 + round - 1;
 
 type RoundState = "setup" | "battle" | "end";
 
+const systemsReady = (
+  systems: Partial<GameSystems>
+): systems is GameSystems => {
+  return (
+    !!systems.unitManager &&
+    !!systems.gameObjectManager &&
+    !!systems.placementSystem &&
+    !!systems.scene &&
+    !!systems.world &&
+    !!systems.projectileManager
+  );
+};
+
 export const useRoundManager = (
   isGameActive: boolean,
-  setIsGameActive: React.Dispatch<React.SetStateAction<boolean>>,
   roundState: RoundState,
-  setRoundState: React.Dispatch<React.SetStateAction<RoundState>>,
   currentRound: number,
-  setCurrentRound: React.Dispatch<React.SetStateAction<number>>,
-  roundTimer: number,
-  setRoundTimer: React.Dispatch<React.SetStateAction<number>>,
   player: Player | undefined,
-  setPlayer: React.Dispatch<React.SetStateAction<Player | undefined>>,
-  unitManagerRef: React.RefObject<UnitManager | null>,
-  gameObjectManagerRef: React.RefObject<GameObjectManager | null>,
-  placementRef: React.RefObject<UnitPlacementSystemHandle | null>,
-  sceneRef: React.RefObject<Scene | null>,
-  worldRef: React.RefObject<World | null>,
-  projectileManagerRef: React.RefObject<ProjectileManager | null>
+  systems: Partial<GameSystems>,
+  stateSetters: {
+    setIsGameActive: React.Dispatch<React.SetStateAction<boolean>>;
+    setRoundState: React.Dispatch<React.SetStateAction<RoundState>>;
+    setCurrentRound: React.Dispatch<React.SetStateAction<number>>;
+    setRoundTimer: React.Dispatch<React.SetStateAction<number>>;
+    setPlayer: React.Dispatch<React.SetStateAction<Player | undefined>>;
+  }
 ) => {
+  const {
+    setIsGameActive,
+    setRoundState,
+    setCurrentRound,
+    setRoundTimer,
+    setPlayer,
+  } = stateSetters;
+
   const hasSpawnedEnemies = useRef(false);
   const hasProcessedBattleOutcome = useRef(false);
   const hasHandledEndPhase = useRef(false);
@@ -46,86 +57,65 @@ export const useRoundManager = (
   };
 
   const determineBattleOutcome = useCallback((): boolean => {
-    const manager = unitManagerRef.current;
-    if (!manager || !player) return false;
-    const playerAlive = manager.getAliveUnits(player.id);
-    const enemyAlive = manager.getAliveUnits(ENEMY_TEAM_ID);
+    if (!systemsReady(systems) || !player) return false;
+    const playerAlive = systems.unitManager.getAliveUnits(player.id);
+    const enemyAlive = systems.unitManager.getAliveUnits(ENEMY_TEAM_ID);
     return playerAlive > 0 && enemyAlive === 0;
-  }, [player, unitManagerRef]);
+  }, [player, systems]);
 
-  // Main game loop
+  // Main game loop for "battle" and "end" phases
   useEffect(() => {
-    if (!isGameActive || !player) return;
+    if (!isGameActive || !player || roundState === "setup") {
+      return;
+    }
 
     const interval = setInterval(() => {
       setRoundTimer((prev) => {
         const next = prev - 1;
-        if (next <= 0) {
-          switch (roundState) {
-            case "setup":
-              resetPhaseFlags();
-              setRoundState("battle");
-              return BATTLE_TIME;
+        if (next > 0) return next;
 
-            case "battle": {
-              if (!hasProcessedBattleOutcome.current) {
-                hasProcessedBattleOutcome.current = true;
-                const won = determineBattleOutcome();
-                player.lastBattleWon = won; // set on object directly or use `setPlayer`
-              }
-              setRoundState("end");
-              return END_TIME;
+        // Timer has hit zero, transition to the next phase
+        switch (roundState) {
+          case "battle": {
+            setRoundState("end");
+            return END_TIME;
+          }
+
+          case "end": {
+            if (hasHandledEndPhase.current) return 0;
+            hasHandledEndPhase.current = true;
+
+            const won = determineBattleOutcome();
+            
+            if (systems.unitManager) {
+                systems.unitManager.clearAllUnits();
             }
 
-            case "end": {
-              if (hasHandledEndPhase.current) return 0;
-              hasHandledEndPhase.current = true;
-
-              unitManagerRef.current?.clearAllUnits();
-              setPlayer((prev) =>
-                prev ? { ...prev, units: [] } : undefined
-              );
-
-              if (player.lastBattleWon) {
+            if (won) {
+              // Player won: update gold, go to next round, and return to setup
+              setPlayer((p) => {
+                if (!p) return undefined;
                 const goldReward = getWaveDefinition(currentRound)?.goldReward || 10 * currentRound;
-                setPlayer((prev) =>
-                  prev ? { ...prev, gold: prev.gold + goldReward } : undefined
-                );
-                const nextRound = currentRound + 1;
-                setCurrentRound(nextRound);
-                resetPhaseFlags();
-                setRoundState("setup");
-                return SETUP_TIME;
-              } else {
-                setIsGameActive(false);
-                alert(`Game Over! You reached Round ${currentRound}.`);
-                return 0;
-              }
+                return { ...p, units: [], gold: p.gold + goldReward };
+              });
+              setCurrentRound((r) => r + 1);
+              resetPhaseFlags();
+              setRoundState("setup");
+            } else {
+              // Player lost: end the game
+              setIsGameActive(false);
+              alert(`Game Over! You reached Round ${currentRound}.`);
             }
-
-            default:
-              return 0;
+            return 0; // Stop the timer
           }
         }
-
-        return next;
+        return 0;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [
-    isGameActive,
-    roundState,
-    currentRound,
-    player,
-    setRoundTimer,
-    setRoundState,
-    setCurrentRound,
-    setIsGameActive,
-    setPlayer,
-    determineBattleOutcome,
-    unitManagerRef,
-  ]);
+  }, [ isGameActive, roundState, currentRound, player, systems, determineBattleOutcome, ...Object.values(stateSetters) ]);
+
 
   // Spawn enemies during setup
   useEffect(() => {
@@ -134,70 +124,43 @@ export const useRoundManager = (
       !hasSpawnedEnemies.current &&
       isGameActive &&
       player &&
-      unitManagerRef.current &&
-      gameObjectManagerRef.current &&
-      placementRef.current &&
-      sceneRef.current &&
-      worldRef.current &&
-      projectileManagerRef.current
+      systemsReady(systems)
     ) {
       spawnEnemyWave({
         budget: calculateBudget(currentRound),
-        currentRound,
-        unitManager: unitManagerRef.current,
-        gameObjectManager: gameObjectManagerRef.current,
-        placementRef: placementRef,
-        scene: sceneRef.current,
-        world: worldRef.current,
-        projectileManager: projectileManagerRef.current,
+        currentRound: currentRound,
+        systems,
       });
       hasSpawnedEnemies.current = true;
     }
-  }, [
-    roundState,
-    isGameActive,
-    currentRound,
-    player,
-    unitManagerRef,
-    gameObjectManagerRef,
-    placementRef,
-    sceneRef,
-    worldRef,
-    projectileManagerRef,
-  ]);
+  }, [roundState, isGameActive, player, systems, currentRound]);
 
   // Start battle units
   useEffect(() => {
-    if (roundState === "battle" && unitManagerRef.current) {
-      unitManagerRef.current.setTargets();
-      unitManagerRef.current.playAllUnits();
+    if (roundState === "battle" && systems.unitManager) {
+      systems.unitManager.setTargets();
+      systems.unitManager.playAllUnits();
     }
-  }, [roundState, unitManagerRef]);
+  }, [roundState, systems.unitManager]);
 
   // Early battle end detection
   useEffect(() => {
-    if (
-      roundState !== "battle" ||
-      !isGameActive ||
-      !player ||
-      !unitManagerRef.current
-    )
+    if (roundState !== "battle" || !isGameActive || !player || !systemsReady(systems))
       return;
 
     const checkEarlyWin = () => {
       if (hasProcessedBattleOutcome.current) return;
-      const manager = unitManagerRef.current;
-      const playerAlive = manager?.getAliveUnits(player.id) ?? 0;
-      const enemyAlive = manager?.getAliveUnits(ENEMY_TEAM_ID) ?? 0;
+      
+      const playerAlive = systems.unitManager.getAliveUnits(player.id) ?? 0;
+      const enemyAlive = systems.unitManager.getAliveUnits(ENEMY_TEAM_ID) ?? 0;
+
       if (playerAlive === 0 || enemyAlive === 0) {
         hasProcessedBattleOutcome.current = true;
-        const won = playerAlive > 0 && enemyAlive === 0;
-        player.lastBattleWon = won;
-        setRoundTimer(0);
+        setRoundTimer(0); // Trigger phase transition immediately
       }
     };
 
     const id = setInterval(checkEarlyWin, 500);
     return () => clearInterval(id);
-  }, [roundState, isGameActive, player, unitManagerRef, setRoundTimer]);
+  }, [roundState, isGameActive, player, systems, setRoundTimer]);
 };

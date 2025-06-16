@@ -6,13 +6,13 @@ import { UnitManager } from "../units/UnitManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
 
 export const usePhysicsWorld = (
-  sceneRef: React.RefObject<THREE.Scene | null>, // Depends on scene for ProjectileManager
+  sceneRef: React.RefObject<THREE.Scene | undefined>, // Depends on scene for ProjectileManager
   isLoaded: boolean // Ensure it runs after initial assets/scene might be ready
 ) => {
-  const worldRef = useRef<RAPIER.World | null>(null);
-  const gameObjectManagerRef = useRef<GameObjectManager | null>(null);
-  const unitManagerRef = useRef<UnitManager | null>(null);
-  const projectileManagerRef = useRef<ProjectileManager | null>(null);
+  const worldRef = useRef<RAPIER.World | undefined>(undefined);
+  const gameObjectManagerRef = useRef<GameObjectManager | undefined>(undefined);
+  const unitManagerRef = useRef<UnitManager | undefined>(undefined);
+  const projectileManagerRef = useRef<ProjectileManager | undefined>(undefined);
 
   useEffect(() => {
     if (!isLoaded) return; // Basic gate
@@ -39,10 +39,10 @@ export const usePhysicsWorld = (
     return () => {
       // Cleanup physics world and managers if necessary upon unmount or dependency change
       // worldRef.current?.free(); // Rapier world cleanup
-      worldRef.current = null;
-      gameObjectManagerRef.current = null;
-      unitManagerRef.current = null;
-      projectileManagerRef.current = null;
+      worldRef.current = undefined;
+      gameObjectManagerRef.current =undefined;
+      unitManagerRef.current = undefined;
+      projectileManagerRef.current = undefined;
     };
   }, [isLoaded, sceneRef]); // Re-run if isLoaded or sceneRef changes
 

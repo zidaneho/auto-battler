@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import ThreeScene from "@/components/ThreeScene";
 import AutoBattler from "@/components/AutoBattler";
 
 const Home: React.FC = () => {
@@ -21,7 +20,6 @@ const Home: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      
       <AutoBattler />
     </div>
   );
