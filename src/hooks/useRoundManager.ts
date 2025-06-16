@@ -86,16 +86,18 @@ export const useRoundManager = (
             hasHandledEndPhase.current = true;
 
             const won = determineBattleOutcome();
-            
+
             if (systems.unitManager) {
-                systems.unitManager.clearAllUnits();
+              systems.unitManager.clearAllUnits();
             }
 
             if (won) {
               // Player won: update gold, go to next round, and return to setup
               setPlayer((p) => {
                 if (!p) return undefined;
-                const goldReward = getWaveDefinition(currentRound)?.goldReward || 10 * currentRound;
+                const goldReward =
+                  getWaveDefinition(currentRound)?.goldReward ||
+                  10 * currentRound;
                 return { ...p, units: [], gold: p.gold + goldReward };
               });
               setCurrentRound((r) => r + 1);
@@ -114,8 +116,15 @@ export const useRoundManager = (
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [ isGameActive, roundState, currentRound, player, systems, determineBattleOutcome, ...Object.values(stateSetters) ]);
-
+  }, [
+    isGameActive,
+    roundState,
+    currentRound,
+    player,
+    systems,
+    determineBattleOutcome,
+    ...Object.values(stateSetters),
+  ]);
 
   // Spawn enemies during setup
   useEffect(() => {
@@ -126,6 +135,7 @@ export const useRoundManager = (
       player &&
       systemsReady(systems)
     ) {
+      
       spawnEnemyWave({
         budget: calculateBudget(currentRound),
         currentRound: currentRound,
@@ -145,12 +155,17 @@ export const useRoundManager = (
 
   // Early battle end detection
   useEffect(() => {
-    if (roundState !== "battle" || !isGameActive || !player || !systemsReady(systems))
+    if (
+      roundState !== "battle" ||
+      !isGameActive ||
+      !player ||
+      !systemsReady(systems)
+    )
       return;
 
     const checkEarlyWin = () => {
       if (hasProcessedBattleOutcome.current) return;
-      
+
       const playerAlive = systems.unitManager.getAliveUnits(player.id) ?? 0;
       const enemyAlive = systems.unitManager.getAliveUnits(ENEMY_TEAM_ID) ?? 0;
 

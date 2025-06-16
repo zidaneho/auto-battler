@@ -31,7 +31,7 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
   maxUnitsPerPlayer,
   onPurchaseUnit,
 }) => {
-  console.log("hello");
+  
   if (!isGameActive || roundState !== "setup" || !placementRef.current) {
     return null;
   }

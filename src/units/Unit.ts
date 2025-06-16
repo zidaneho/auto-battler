@@ -59,6 +59,7 @@ export class Unit extends GameComponent {
       this.target = null;
     }
   }
+
   dealDamage(target: Unit): void {
     // Added target parameter
     if (target == null) {

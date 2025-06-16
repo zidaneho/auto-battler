@@ -115,22 +115,38 @@ export const useRaycaster = (
         return;
       }
       const tile = placementRef.current.getGrid(draggableGO.transform.position);
-      if (tile && !tile.isOccupied) {
+      const oldTile = placementRef.current.getGrid(draggableUnit.gridPosition);
+      if (tile && oldTile != null && tile.occupiedUnit == null) {
         console.log(`found a valid tile! at (${tile.row},${tile.col}})`);
         //mark old tile to be free
-        const oldTile = placementRef.current.getGrid(
-          draggableUnit.gridPosition
-        );
-        if (oldTile) {
-          console.log("marked old tile to be free");
-          placementRef.current.markOccupied(oldTile.row, oldTile.col, false);
-        }
+        console.log("marked old tile to be free");
+        placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
+
         //mark new tile as occupied
-        placementRef.current.markOccupied(tile.row, tile.col, true);
+        placementRef.current.markOccupied(tile.row, tile.col, draggableUnit);
         body.setPosition(tile.position);
         draggableUnit.gridPosition = tile.position.clone();
-      } else {
+      } else if (tile && oldTile != null) {
         //the tile is occupied. we swap units here
+        const tempUnit = tile.occupiedUnit;
+
+        placementRef.current.markOccupied(tile.row, tile.col, draggableUnit);
+        body.setPosition(tile.position);
+        draggableUnit.gridPosition = tile.position.clone();
+
+        if (tempUnit) {
+          const oldBody = tempUnit?.gameObject.getComponent(CharacterRigidbody);
+          if (oldBody) {
+            placementRef.current.markOccupied(
+              oldTile.row,
+              oldTile.col,
+              tempUnit
+            );
+            oldBody.setPosition(oldTile.position);
+          }
+          tempUnit.gridPosition = oldTile.position.clone();
+        }
+      } else {
         console.log(
           `no valid grids. returning to (${draggableUnit.gridPosition.x},${draggableUnit.gridPosition.y},${draggableUnit.gridPosition.z}).`
         );

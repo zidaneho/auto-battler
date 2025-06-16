@@ -54,9 +54,9 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
 
     if (playerId == 1) {
       for (let i = 0; i < gridPositions.length / 2; i++) {
-        for (const cellPosition of gridPositions[i]) {
-          if (!cellPosition.isOccupied) {
-            availableTile = cellPosition;
+        for (const tile of gridPositions[i]) {
+          if (tile.occupiedUnit == null) {
+            availableTile = tile;
             break;
           }
         }
@@ -68,9 +68,9 @@ const BuyMenu: React.FC<BuyMenuProps> = ({
         i >= gridPositions.length / 2;
         i--
       ) {
-        for (const cellPosition of gridPositions[i]) {
-          if (!cellPosition.isOccupied) {
-            availableTile = cellPosition;
+        for (const tile of gridPositions[i]) {
+          if (tile.occupiedUnit == null) {
+            availableTile = tile;
             break;
           }
         }

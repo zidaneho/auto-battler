@@ -1,3 +1,4 @@
+import { Unit } from "@/units/Unit";
 import React, {
   useEffect,
   useRef,
@@ -18,13 +19,13 @@ export class GridTile {
   row: number;
   col: number;
   position: THREE.Vector3;
-  isOccupied: boolean;
+  occupiedUnit : Unit | null;
 
   constructor(row: number, col: number, position: THREE.Vector3) {
     this.row = row;
     this.col = col;
     this.position = position.clone();
-    this.isOccupied = false;
+    this.occupiedUnit = null;
   }
 }
 
@@ -42,7 +43,7 @@ export interface UnitPlacementSystemHandle {
   markOccupied: (
     tileRow: number,
     tileCol: number,
-    occupiedStatus: boolean
+    occupiedUnit : Unit | null,
   ) => void; // CHANGED: Simplified signature
 }
 
@@ -80,13 +81,13 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
       markOccupied: (
         tileRow: number,
         tileCol: number,
-        occupiedStatus: boolean
+        occupiedUnit : Unit | null
       ) => {
         // Find the tile in our grid and update its personal occupied status
         if (tileRow < 0 || tileRow > gridTilesRef.current.length) return;
         if (tileCol < 0 || tileCol > gridTilesRef.current[tileRow].length)
           return;
-        gridTilesRef.current[tileRow][tileCol].isOccupied = occupiedStatus;
+        gridTilesRef.current[tileRow][tileCol].occupiedUnit = occupiedUnit;
       },
     }));
 

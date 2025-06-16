@@ -10,6 +10,7 @@ import {
   UnitPlacementSystemHandle,
 } from "../components/UnitPlacementSystem";
 import { GameSystems } from "@/types/gameTypes";
+import { Unit } from "@/units/Unit";
 
 export const ENEMY_TEAM_ID = 2;
 
@@ -113,10 +114,12 @@ export function spawnEnemyWave({
     }
 
     // Get the next available TILE object
+
     let availableTile = getNextAvailableSlot(targetSlots, placementSystem);
     if (!availableTile) {
       availableTile = getNextAvailableSlot(fallbackSlots, placementSystem);
     }
+
     const scene = systems.scene;
     const world = systems.world;
     const unitManager = systems.unitManager;
@@ -124,6 +127,7 @@ export function spawnEnemyWave({
     const projectileManager = systems.projectileManager;
     if (availableTile) {
       const spawnPosition = availableTile.position;
+      console.log("spawning unit");
       const unitGO = spawnSingleUnit({
         blueprint: selectedProfile.blueprint,
         playerIdToSpawn: ENEMY_TEAM_ID,
@@ -137,9 +141,10 @@ export function spawnEnemyWave({
 
       if (unitGO) {
         // Mark the tile as occupied using the placement system
+        const unit = unitGO.getComponent(Unit);
         const tile = placementSystem.getGrid(spawnPosition);
-        if (tile) {
-          placementSystem.markOccupied(tile.row, tile.col, true);
+        if (unit && tile) {
+          placementSystem.markOccupied(tile.row, tile.col, unit);
         }
 
         remainingBudget -= selectedProfile.spawnCost;
@@ -168,7 +173,7 @@ function getNextAvailableSlot(
   while (slotList.length > 0) {
     const tile = slotList.pop(); // Take one tile from the end of the shuffled list
     // If a tile exists and is NOT occupied, it's a valid spot
-    if (tile && !tile.isOccupied) {
+    if (tile && tile.occupiedUnit == null) {
       return tile;
     }
   }

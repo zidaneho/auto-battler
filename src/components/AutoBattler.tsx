@@ -43,6 +43,7 @@ import { spawnEnemyWave, ENEMY_TEAM_ID } from "@/gameLogic/enemySpawner"; // Imp
 // Types
 import { GameSystems, Player } from "@/types/gameTypes"; // PlayerUnitInstance might not be needed directly here anymore
 import { useRaycaster } from "@/hooks/useRaycaster";
+import { Unit } from "@/units/Unit";
 
 const AutoBattler: React.FC = () => {
   // Single player state
@@ -62,8 +63,6 @@ const AutoBattler: React.FC = () => {
   const placementSystemPosition = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
   const [systemsReady, setSystemsReady] = useState(false);
-
-  
 
   useEffect(() => {
     if (
@@ -230,7 +229,12 @@ const AutoBattler: React.FC = () => {
       });
 
       if (newUnitGameObject) {
-        placementRef.current.markOccupied(tile.row, tile.col, true);
+        const unit = newUnitGameObject?.getComponent(Unit);
+
+        if (unit) {
+          placementRef.current.markOccupied(tile.row, tile.col, unit);
+        }
+
         setPlayer((prevPlayer) => {
           if (!prevPlayer) return undefined; // Should not happen if initial check passes
           return {
