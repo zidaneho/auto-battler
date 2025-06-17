@@ -3,8 +3,7 @@ import { Player } from "@/types/gameTypes"; // Adjust path
 
 interface GameUIProps {
   currentRound: number;
-  roundState: "setup" | "battle" | "end";
-  roundTimer: number;
+  roundState: string;
   players: Player[];
   maxUnits: number; // Assuming maxUnits is calculated and passed as a prop
   isLoaded: boolean;
@@ -16,7 +15,6 @@ interface GameUIProps {
 const GameUI: React.FC<GameUIProps> = ({
   currentRound,
   roundState,
-  roundTimer,
   players,
   maxUnits,
   isLoaded,
@@ -53,7 +51,6 @@ const GameUI: React.FC<GameUIProps> = ({
       </h2>
       <div>Round: {currentRound}</div>
       <div>State: {roundState.toUpperCase()}</div>
-      <div>Time: {roundTimer}s</div>
       {players.map((player) => (
         <div key={player.id} style={{ marginTop: "8px" }}>
           Player {player.id} | Gold: {player.gold} | Units:{" "}

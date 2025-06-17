@@ -15,6 +15,7 @@ import { UnitBlueprint } from "@/components/UnitBlueprint";
 import { useModelStore } from "@/components/ModelStore";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { ClickableComponent } from "@/components/ClickableComponent";
+import { CollisionComponent } from "@/physics/CollisionComponent";
 
 export class UnitManager {
   units: SafeArray<Unit>;

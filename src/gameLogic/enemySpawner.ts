@@ -9,23 +9,33 @@ import {
   GridTile,
   UnitPlacementSystemHandle,
 } from "../components/UnitPlacementSystem";
-import { GameSystems } from "@/types/gameTypes";
 import { Unit } from "@/units/Unit";
 
 export const ENEMY_TEAM_ID = 2;
 
+// The parameters interface is updated to take individual systems
 interface EnemySpawnerParams {
   budget: number;
   currentRound: number;
-  systems: GameSystems;
+  unitManager: UnitManager;
+  gameObjectManager: GameObjectManager;
+  placementSystem: UnitPlacementSystemHandle;
+  scene: THREE.Scene;
+  world: RAPIER.World;
+  projectileManager: ProjectileManager;
 }
 
+// The function now destructures the individual systems from its parameters
 export function spawnEnemyWave({
   budget,
   currentRound,
-  systems,
+  unitManager,
+  gameObjectManager,
+  placementSystem,
+  scene,
+  world,
+  projectileManager,
 }: EnemySpawnerParams) {
-  const placementSystem = systems?.placementSystem;
   if (!placementSystem) {
     console.error("Placement system not available for spawning enemies.");
     return;
@@ -113,18 +123,12 @@ export function spawnEnemyWave({
       fallbackSlots = availableSlots.front;
     }
 
-    // Get the next available TILE object
-
     let availableTile = getNextAvailableSlot(targetSlots, placementSystem);
     if (!availableTile) {
       availableTile = getNextAvailableSlot(fallbackSlots, placementSystem);
     }
-
-    const scene = systems.scene;
-    const world = systems.world;
-    const unitManager = systems.unitManager;
-    const gameObjectManager = systems.gameObjectManager;
-    const projectileManager = systems.projectileManager;
+    
+    // The systems are now accessed directly from the function parameters
     if (availableTile) {
       const spawnPosition = availableTile.position;
       console.log("spawning unit");
@@ -140,7 +144,6 @@ export function spawnEnemyWave({
       });
 
       if (unitGO) {
-        // Mark the tile as occupied using the placement system
         const unit = unitGO.getComponent(Unit);
         const tile = placementSystem.getGrid(spawnPosition);
         if (unit && tile) {
@@ -149,8 +152,7 @@ export function spawnEnemyWave({
 
         remainingBudget -= selectedProfile.spawnCost;
         console.log(
-          `Spawned enemy: ${selectedProfile.blueprint.name} at (${tile?.row}, ${tile?.col}
-          )}). Budget left: ${remainingBudget}`
+          `Spawned enemy: ${selectedProfile.blueprint.name} at (${tile?.row}, ${tile?.col}). Budget left: ${remainingBudget}`
         );
       } else {
         console.warn(`Failed to spawn ${selectedProfile.blueprint.name}`);
@@ -165,22 +167,20 @@ export function spawnEnemyWave({
   );
 }
 
-// Helper function to get the next available slot
+// Helper functions remain unchanged
 function getNextAvailableSlot(
   slotList: GridTile[],
   placementSystem: UnitPlacementSystemHandle
 ): GridTile | undefined {
   while (slotList.length > 0) {
-    const tile = slotList.pop(); // Take one tile from the end of the shuffled list
-    // If a tile exists and is NOT occupied, it's a valid spot
+    const tile = slotList.pop();
     if (tile && tile.occupiedUnit == null) {
       return tile;
     }
   }
-  return undefined; // No available slots in this list
+  return undefined;
 }
 
-// Helper function to shuffle an array
 function shuffleArray<T>(array: T[]): T[] {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

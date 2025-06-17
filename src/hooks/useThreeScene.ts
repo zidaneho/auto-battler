@@ -43,9 +43,8 @@ export const useThreeScene = (
     // Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.0;
+    controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
-    controls.update();
 
     threeRef.current = { scene, camera, renderer, controls };
 

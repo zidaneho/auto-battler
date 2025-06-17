@@ -17,6 +17,7 @@ interface GameObjectListeners {
   [eventName: string]: ((payload?: any) => void)[];
 }
 
+
 export class GameObject {
   name: string;
   parent:THREE.Object3D

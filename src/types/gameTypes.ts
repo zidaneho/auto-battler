@@ -5,6 +5,7 @@ import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
 import { Scene } from "three";
 import { World } from "@dimforge/rapier3d";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
+import { RoundManager } from "@/gameLogic/roundManager";
 
 export interface PlayerUnitInstance {
   id: string; // Unique ID for the unit instance (e.g., gameObject.name)
@@ -22,11 +23,3 @@ export interface Player {
   // For now, I'm commenting it out based on the provided Player interface.
 }
 
-export interface GameSystems {
-  unitManager: UnitManager;
-  gameObjectManager: GameObjectManager;
-  placementSystem: UnitPlacementSystemHandle | null;
-  scene: Scene;
-  world: World;
-  projectileManager: ProjectileManager;
-}

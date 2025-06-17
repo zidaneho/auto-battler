@@ -30,69 +30,47 @@ import { useThreeScene } from "@/hooks/useThreeScene";
 import { usePhysicsWorld } from "@/hooks/usePhysicsWorld";
 import { useMapManager } from "@/hooks/useMapManager";
 import { useGameLoop } from "@/hooks/useGameLoop";
-import { useRoundManager } from "@/hooks/useRoundManager"; // Assuming ENEMY_TEAM_ID is exported for consistency
 
 // UI Components
-import GameUI from "./GameUI"; // Assuming this is in the same folder or correct path
+import GameUI from "./GameUI";
 import BuyMenuContainer from "@/components/BuyMenuContainer";
 
 // Game Logic
 import { spawnSingleUnit } from "@/gameLogic/unitActions";
-import { spawnEnemyWave, ENEMY_TEAM_ID } from "@/gameLogic/enemySpawner"; // Import the spawner and its ENEMY_TEAM_ID
 
 // Types
-import { GameSystems, Player } from "@/types/gameTypes"; // PlayerUnitInstance might not be needed directly here anymore
+import { Player } from "@/types/gameTypes";
 import { useRaycaster } from "@/hooks/useRaycaster";
 import { Unit } from "@/units/Unit";
+import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import the class and enum
 
 const AutoBattler: React.FC = () => {
-  // Single player state
+  // State management
   const [player, setPlayer] = useState<Player | undefined>(undefined);
   const [currentRound, setCurrentRound] = useState(1);
-  const [roundState, setRoundState] = useState<"setup" | "battle" | "end">(
-    "setup"
-  );
+  const [roundState, setRoundState] = useState<RoundState>(RoundState.Inactive); // Use the enum
   const [currentMap, setCurrentMap] =
     useState<keyof typeof globalModelList>("prototypeMap");
-  const [roundTimer, setRoundTimer] = useState<number>(30); // Initial setup time
   const [isGameActive, setIsGameActive] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Refs for systems and components
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const placementRef = useRef<UnitPlacementSystemHandle>(null);
+  const placementRef = useRef<UnitPlacementSystemHandle | null>(null);
+  const roundManagerRef = useRef<RoundManager | null>(null);
+
   const placementSystemPosition = useMemo(() => new THREE.Vector3(0, 1, 0), []);
-
-  const [systemsReady, setSystemsReady] = useState(false);
-
-  useEffect(() => {
-    if (
-      isLoaded &&
-      player &&
-      sceneRef.current &&
-      worldRef.current &&
-      unitManagerRef.current &&
-      placementRef.current &&
-      gameObjectManagerRef.current
-    ) {
-      setSystemsReady(true); // triggers the re-render you need
-    }
-  }, [isLoaded, player]); // anyone you *know* will change
 
   // GLTF Models Loading Effect
   useEffect(() => {
-    async function loadGLTFModelsAsync(): Promise<void> {
-      return new Promise((resolve) => loadGLTFModels(resolve));
-    }
-    loadGLTFModelsAsync().then(() => {
+    loadGLTFModels(() => {
       setIsLoaded(true);
       console.log("All GLTF models loaded!");
     });
   }, []);
 
-  // Setup Three.js scene, camera, renderer
+  // Setup Three.js scene and Physics World
   const { threeRef, sceneRef } = useThreeScene(containerRef, isLoaded);
-
-  // Setup Physics World and Managers
   const {
     worldRef,
     gameObjectManagerRef,
@@ -100,37 +78,51 @@ const AutoBattler: React.FC = () => {
     projectileManagerRef,
   } = usePhysicsWorld(sceneRef, isLoaded);
 
+  // Callback function to link RoundManager back to React state
+  const onRoundStateChange = useCallback((newState: any) => {
+    if (newState.roundState !== undefined) setRoundState(newState.roundState);
+    if (newState.currentRound !== undefined)
+      setCurrentRound(newState.currentRound);
+    if (newState.isGameActive !== undefined)
+      setIsGameActive(newState.isGameActive);
+    // You can also update player gold or other states here if needed
+  }, []);
+
+  // Instantiate RoundManager once all systems are ready
+  useEffect(() => {
+    if (
+      isLoaded &&
+      unitManagerRef.current &&
+      gameObjectManagerRef.current &&
+      placementRef.current &&
+      sceneRef.current &&
+      worldRef.current &&
+      projectileManagerRef.current
+    ) {
+      roundManagerRef.current = new RoundManager(
+        unitManagerRef.current,
+        gameObjectManagerRef.current,
+        placementRef.current,
+        sceneRef.current,
+        worldRef.current,
+        projectileManagerRef.current,
+        onRoundStateChange
+      );
+    }
+  }, [isLoaded, onRoundStateChange]);
+
   // Load Map and Collision
   useMapManager(threeRef, worldRef, gameObjectManagerRef, currentMap, isLoaded);
 
-  // Main Game Render Loop
+  // Main Game Render Loop - now calls roundManager.update()
   useGameLoop(
     threeRef,
-    worldRef,
-    gameObjectManagerRef,
-    unitManagerRef,
+    worldRef.current,
+    gameObjectManagerRef.current,
+    unitManagerRef.current,
     isGameActive,
     roundState
   );
-
-  const systems: Partial<GameSystems> = {
-    unitManager: unitManagerRef.current,
-    gameObjectManager: gameObjectManagerRef.current,
-    placementSystem: placementRef.current,
-    scene: sceneRef.current,
-    world: worldRef.current,
-    projectileManager: projectileManagerRef.current,
-  };
-
-  // Game Round Logic (timer, state transitions, cleanup)
-  // Ensure useRoundManager is adapted for single player and receives all necessary refs
-  useRoundManager(isGameActive, roundState, currentRound, player, systems, {
-    setIsGameActive,
-    setRoundState,
-    setCurrentRound,
-    setRoundTimer,
-    setPlayer,
-  });
 
   useRaycaster(
     threeRef,
@@ -141,85 +133,56 @@ const AutoBattler: React.FC = () => {
   );
 
   const maxUnits =
-    placementRef.current && player // Ensure player exists before calculating max units for them
-      ? getMaxUnits(placementRef.current.getGridTiles()) // This might need adjustment for single player grid area
+    placementRef.current && player
+      ? getMaxUnits(placementRef.current.getGridTiles())
       : 0;
 
+  // Game actions now delegate to the RoundManager
   const startGame = useCallback(() => {
-    if (!isLoaded || !unitManagerRef.current || !gameObjectManagerRef.current) {
+    if (isLoaded && roundManagerRef.current) {
+      const newPlayer = { id: 1, gold: 100, units: [] };
+      setPlayer(newPlayer);
+      roundManagerRef.current.startGame(newPlayer);
+      setIsGameActive(true);
+    } else {
       alert("Game assets or systems not ready. Please wait.");
-      return;
     }
-    // Initialize player for the game
-    setPlayer({ id: 1, gold: 100, units: [] }); // Example starting gold
-
-    setCurrentRound(1);
-    setIsGameActive(true);
-    setRoundState("setup");
-    console.log("Game started!");
-  }, [isLoaded, unitManagerRef, gameObjectManagerRef]);
+  }, [isLoaded]);
 
   const startBattlePhase = useCallback(() => {
     if (!player || player.units.length === 0) {
       alert("Place some units before starting the battle!");
       return;
     }
-
-    setRoundState("battle");
-    // Timer for battle phase will be set by useRoundManager or the effect below
-    console.log("Attempting to start Battle phase!");
-  }, [player, setRoundState, setRoundTimer]);
+    roundManagerRef.current?.setRoundState(RoundState.Battle);
+  }, [player]);
 
   const handlePurchaseUnit = useCallback(
-    (
-      blueprint: UnitBlueprint,
-      tile: GridTile
-      // playerId is removed as we have a single player
-    ): boolean => {
-      if (!player) {
-        console.error("Player not initialized. Cannot purchase unit.");
-        return false;
-      }
-      if (!placementRef.current) {
-        console.error(
-          "Placement Reference is undefined when trying to buy a unit!"
-        );
-        return false;
-      }
-
-      const gridPositions = placementRef.current.getGridTiles();
-      if (!gridPositions || gridPositions.length === 0) {
-        alert("Placement grid not ready.");
-        return false;
-      }
-
+    (blueprint: UnitBlueprint, tile: GridTile): boolean => {
+      // This logic remains largely the same as it directly manipulates the player state and game objects
+      if (!player) return false;
+      if (!placementRef.current) return false;
       if (player.gold < blueprint.cost) {
         alert("Not enough gold!");
+        return false;
+      }
+      if (player.units.length >= maxUnits && maxUnits > 0) {
+        alert("Your board is full!");
         return false;
       }
       if (
         !sceneRef.current ||
         !worldRef.current ||
         !unitManagerRef.current ||
-        !gameObjectManagerRef.current
+        !gameObjectManagerRef.current ||
+        !projectileManagerRef.current
       ) {
-        alert("Core game systems are not ready. Cannot purchase unit.");
-        return false;
-      }
-      if (blueprint.unitClass === Archer && !projectileManagerRef.current) {
-        alert("Projectile system not ready. Cannot purchase Archer.");
-        return false;
-      }
-
-      // Ensure player doesn't exceed max unit count
-      if (player.units.length >= maxUnits && maxUnits > 0) {
-        alert("Your board is full! Cannot buy more units.");
         return false;
       }
 
       const newUnitGameObject = spawnSingleUnit({
         blueprint,
-        playerIdToSpawn: player.id, // Use the single player's ID
+        playerIdToSpawn: player.id,
         scene: sceneRef.current,
         world: worldRef.current,
         unitManager: unitManagerRef.current,
@@ -229,19 +192,17 @@ const AutoBattler: React.FC = () => {
       });
 
       if (newUnitGameObject) {
-        const unit = newUnitGameObject?.getComponent(Unit);
-
+        const unit = newUnitGameObject.getComponent(Unit);
         if (unit) {
           placementRef.current.markOccupied(tile.row, tile.col, unit);
         }
-
-        setPlayer((prevPlayer) => {
-          if (!prevPlayer) return undefined; // Should not happen if initial check passes
+        setPlayer((p) => {
+          if (!p) return undefined;
           return {
-            ...prevPlayer,
-            gold: prevPlayer.gold - blueprint.cost,
+            ...p,
+            gold: p.gold - blueprint.cost,
             units: [
-              ...prevPlayer.units,
+              ...p.units,
               {
                 id: newUnitGameObject.name,
                 blueprintName: blueprint.name,
@@ -254,15 +215,15 @@ const AutoBattler: React.FC = () => {
       }
       return false;
     },
-    [
-      player,
-      sceneRef,
-      worldRef,
-      unitManagerRef,
-      gameObjectManagerRef,
-      projectileManagerRef,
-    ]
+    [player, maxUnits]
   );
+
+  // Helper to convert enum to string for UI
+  const getRoundStateName = (
+    state: RoundState
+  ): "setup" | "battle" | "end" | "inactive" => {
+    return RoundState[state].toLowerCase() as any;
+  };
 
   return (
     <div
@@ -276,9 +237,8 @@ const AutoBattler: React.FC = () => {
     >
       <GameUI
         currentRound={currentRound}
-        roundState={roundState}
-        roundTimer={roundTimer}
-        players={player ? [player] : []} // GameUI might expect an array
+        roundState={getRoundStateName(roundState)}
+        players={player ? [player] : []}
         maxUnits={maxUnits}
         isLoaded={isLoaded}
         isGameActive={isGameActive}
@@ -290,22 +250,22 @@ const AutoBattler: React.FC = () => {
         <UnitPlacementSystem
           ref={placementRef}
           scene={sceneRef.current}
-          position={placementSystemPosition} // Adjusted Y slightly for visibility above ground
-          tileSize={2} // Ensure this matches assumptions in enemySpawner and buyMenu
-          gridSize={6} // Example: 6x6 grid overall
+          position={placementSystemPosition}
+          tileSize={2}
+          gridSize={6}
         />
       )}
 
-      {systemsReady && (
+      {isGameActive && roundState === RoundState.Setup && (
         <BuyMenuContainer
-          players={player ? [player] : []} // Adapt for single player
+          players={player ? [player] : []}
           isGameActive={isGameActive}
-          roundState={roundState}
+          roundState={getRoundStateName(roundState)}
           placementRef={placementRef}
           maxUnitsPerPlayer={maxUnits}
           onPurchaseUnit={(blueprint, tile) =>
             handlePurchaseUnit(blueprint, tile)
-          } // playerId removed from args
+          }
         />
       )}
     </div>

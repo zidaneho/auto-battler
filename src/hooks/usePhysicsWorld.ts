@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { GameObjectManager } from "../ecs/GameObjectManager"; // Adjust path
 import { UnitManager } from "../units/UnitManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
+import { RoundManager } from "@/gameLogic/roundManager";
 
 export const usePhysicsWorld = (
   sceneRef: React.RefObject<THREE.Scene | undefined>, // Depends on scene for ProjectileManager
@@ -13,6 +14,7 @@ export const usePhysicsWorld = (
   const gameObjectManagerRef = useRef<GameObjectManager | undefined>(undefined);
   const unitManagerRef = useRef<UnitManager | undefined>(undefined);
   const projectileManagerRef = useRef<ProjectileManager | undefined>(undefined);
+  const roundManagerRef = useRef<RoundManager | undefined>(undefined);
 
   useEffect(() => {
     if (!isLoaded) return; // Basic gate

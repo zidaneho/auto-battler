@@ -2,6 +2,7 @@ import { ClickableComponent } from "@/components/ClickableComponent";
 import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
 import { GameObject } from "@/ecs/GameObject";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
+import { RoundState } from "@/gameLogic/roundManager";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { Unit } from "@/units/Unit";
 import RAPIER, { World } from "@dimforge/rapier3d";
@@ -19,12 +20,12 @@ export const useRaycaster = (
   >,
   worldRef: React.RefObject<RAPIER.World | undefined>,
   gameObjectManager: React.RefObject<GameObjectManager | undefined>,
-  roundState: "setup" | "battle" | "end",
+  roundState: RoundState,
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>
 ) => {
   useEffect(() => {
     //drag useEffect. should only be enabled in setup mode.
-    if (roundState !== "setup") return;
+    if (roundState <= RoundState.Setup) return;
     const pointer = new THREE.Vector2();
     const pointerMove = new THREE.Vector2();
     var draggableGO: GameObject | null;
@@ -40,15 +41,15 @@ export const useRaycaster = (
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(pointerMove, camera);
 
-      // Define a horizontal plane at y = 0 (or wherever your ground is)
-      const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      // Define a horizontal plane at y = 1 (or wherever your grid is)
+      const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1);
       const intersectionPoint = new THREE.Vector3();
 
       if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
         // Now this intersectionPoint is a real 3D position on the ground
         draggableGO.transform.position.set(
           intersectionPoint.x,
-          intersectionPoint.y + 1,
+          intersectionPoint.y,
           intersectionPoint.z
         );
       }
@@ -61,7 +62,6 @@ export const useRaycaster = (
       pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
       if (draggableGO) {
-        console.log("calling on up");
         onUp(draggableGO);
         draggableGO = null;
       } else {
@@ -84,12 +84,12 @@ export const useRaycaster = (
 
           if (gameObject) {
             const clickable = gameObject.getComponent(ClickableComponent);
+            const unit = gameObject.getComponent(Unit);
 
-            if (clickable && placementRef.current) {
+            // Only allow dragging of player units (team 1)
+            if (clickable && placementRef.current && unit?.teamId === 1) {
               draggableGO = gameObject;
-              console.log("hit " + gameObject.name);
-
-              moveDraggleGO(event, camera, draggableGO);
+              // moveDraggleGO is now called in onMove
             }
           }
         }
@@ -98,69 +98,122 @@ export const useRaycaster = (
     function onMove(event: MouseEvent) {
       if (!threeRef.current || !draggableGO || !placementRef.current) return;
 
-      const { camera, scene } = threeRef.current;
-
+      const { camera } = threeRef.current;
       moveDraggleGO(event, camera, draggableGO);
     }
+
     function onUp(draggableGO: GameObject) {
       if (!placementRef.current) return;
       const draggableUnit = draggableGO.getComponent(Unit);
       const body = draggableGO.getComponent(CharacterRigidbody);
-      if (!draggableUnit) {
-        console.log("clickable was not a unit!");
+
+      if (!draggableUnit || !body) {
+        console.log("Clickable was not a unit!");
         return;
       }
-      if (!body) {
-        console.log("clickable was not a characterRigidbody!");
-        return;
-      }
-      const tile = placementRef.current.getGrid(draggableGO.transform.position);
+
+      const targetTile = placementRef.current.getGrid(
+        draggableGO.transform.position
+      );
       const oldTile = placementRef.current.getGrid(draggableUnit.gridPosition);
-      if (tile && oldTile != null && tile.occupiedUnit == null) {
-        console.log(`found a valid tile! at (${tile.row},${tile.col}})`);
-        //mark old tile to be free
-        console.log("marked old tile to be free");
-        placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
 
-        //mark new tile as occupied
-        placementRef.current.markOccupied(tile.row, tile.col, draggableUnit);
-        body.setPosition(tile.position);
-        draggableUnit.gridPosition = tile.position.clone();
-      } else if (tile && oldTile != null) {
-        //the tile is occupied. we swap units here
-        const tempUnit = tile.occupiedUnit;
+      // --- START: PLACEMENT VALIDATION LOGIC ---
+      let isPlacementValid = false;
+      if (targetTile) {
+        const gridTiles = placementRef.current.getGridTiles();
+        const totalRows = gridTiles.length;
+        const midwayPoint = totalRows / 2;
+        const unitTeamId = draggableUnit.teamId;
 
-        placementRef.current.markOccupied(tile.row, tile.col, draggableUnit);
-        body.setPosition(tile.position);
-        draggableUnit.gridPosition = tile.position.clone();
-
-        if (tempUnit) {
-          const oldBody = tempUnit?.gameObject.getComponent(CharacterRigidbody);
-          if (oldBody) {
-            placementRef.current.markOccupied(
-              oldTile.row,
-              oldTile.col,
-              tempUnit
-            );
-            oldBody.setPosition(oldTile.position);
-          }
-          tempUnit.gridPosition = oldTile.position.clone();
+        // Player (Team 1) can only place on the bottom half of the board
+        if (unitTeamId === 1 && targetTile.row < midwayPoint) {
+          isPlacementValid = true;
         }
-      } else {
-        console.log(
-          `no valid grids. returning to (${draggableUnit.gridPosition.x},${draggableUnit.gridPosition.y},${draggableUnit.gridPosition.z}).`
+        // Enemy (Team 2) can only place on the top half
+        else if (unitTeamId === 2 && targetTile.row >= midwayPoint) {
+          isPlacementValid = true;
+        }
+      }
+
+      if (!targetTile || !oldTile || !isPlacementValid) {
+        if (targetTile && !isPlacementValid) {
+          console.log(
+            `Invalid placement for Team ${draggableUnit.teamId} at row ${targetTile.row}.`
+          );
+        }
+        body.setPosition(draggableUnit.gridPosition);
+        return; // Exit the function
+      }
+      // --- END: PLACEMENT VALIDATION LOGIC ---
+
+      // --- The rest of the logic runs only if placement is valid ---
+
+      // Case 1: Dropped on an UNOCCUPIED tile
+      if (!targetTile.occupiedUnit) {
+        placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
+        placementRef.current.markOccupied(
+          targetTile.row,
+          targetTile.col,
+          draggableUnit
         );
+        body.setPosition(targetTile.position);
+        draggableUnit.gridPosition = targetTile.position.clone();
+      }
+      // Case 2: Dropped on an OCCUPIED tile (Swap)
+      else if (
+        targetTile.occupiedUnit &&
+        targetTile.occupiedUnit !== draggableUnit
+      ) {
+        const otherUnit = targetTile.occupiedUnit;
+        const otherUnitBody =
+          otherUnit.gameObject.getComponent(CharacterRigidbody);
+
+        if (otherUnitBody) {
+          // Move the other unit to the dragged unit's original tile
+          otherUnitBody.setPosition(oldTile.position);
+          placementRef.current.markOccupied(
+            oldTile.row,
+            oldTile.col,
+            otherUnit
+          );
+          otherUnit.gridPosition = oldTile.position.clone();
+
+          // Move the dragged unit to the target tile
+          body.setPosition(targetTile.position);
+          placementRef.current.markOccupied(
+            targetTile.row,
+            targetTile.col,
+            draggableUnit
+          );
+          draggableUnit.gridPosition = targetTile.position.clone();
+        }
+      }
+      // Case 3: Dropped back on itself
+      else {
         body.setPosition(draggableUnit.gridPosition);
       }
-      //if the unit is in a invalid spot, just set it back to its gridPosition.
     }
 
-    window.addEventListener("click", onClick);
+    // Replace 'click' with mousedown and mouseup for better drag-drop feel
+    const onMouseDown = (event: MouseEvent) => {
+      onClick(event);
+    };
+
+    const onMouseUp = () => {
+      if (draggableGO) {
+        onUp(draggableGO);
+        draggableGO = null;
+      }
+    };
+
+    window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mouseup", onMouseUp);
     window.addEventListener("mousemove", onMove);
 
     return () => {
-      window.removeEventListener("click", onClick);
+      window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("mousemove", onMove);
     };
-  }, [threeRef, worldRef, roundState, placementRef]);
+  }, [threeRef, worldRef, gameObjectManager, roundState, placementRef]);
 };

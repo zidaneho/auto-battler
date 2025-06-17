@@ -73,7 +73,7 @@ export class ProjectileManager {
       gravity
     );
     gameObject.addComponent(ProjectileDamage, teamId, damage);
-    //gameObject.addComponent(DebugMesh, rigidbody, this.scene);
+    gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 
     this.projectiles.add(gameObject);
   }
