@@ -8,16 +8,10 @@ import { Unit } from "@/units/Unit";
 import RAPIER, { World } from "@dimforge/rapier3d";
 import { useEffect } from "react";
 import * as THREE from "three";
+import { ThreeSceneRef } from "./useThreeScene";
 
 export const useRaycaster = (
-  threeRef: React.RefObject<
-    | {
-        scene: THREE.Scene;
-        camera: THREE.PerspectiveCamera;
-        renderer: THREE.WebGLRenderer;
-      }
-    | undefined
-  >,
+  threeScene: ThreeSceneRef | null,
   worldRef: React.RefObject<RAPIER.World | undefined>,
   gameObjectManager: React.RefObject<GameObjectManager | undefined>,
   roundState: RoundState,
@@ -56,7 +50,7 @@ export const useRaycaster = (
     }
 
     function onClick(event: MouseEvent) {
-      if (!threeRef.current || !worldRef.current) return;
+      if (!worldRef.current) return;
       const physicsWorld = worldRef.current;
 
       pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -65,9 +59,10 @@ export const useRaycaster = (
         onUp(draggableGO);
         draggableGO = null;
       } else {
-        const camera = threeRef.current.camera;
         const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(pointer, camera);
+        if (threeScene) {
+          raycaster.setFromCamera(pointer, threeScene?.camera);
+        }
 
         const origin = raycaster.ray.origin;
         const direction = raycaster.ray.direction;
@@ -96,10 +91,8 @@ export const useRaycaster = (
       }
     }
     function onMove(event: MouseEvent) {
-      if (!threeRef.current || !draggableGO || !placementRef.current) return;
-
-      const { camera } = threeRef.current;
-      moveDraggleGO(event, camera, draggableGO);
+      if (!draggableGO || !placementRef.current || !threeScene) return;
+      moveDraggleGO(event, threeScene.camera, draggableGO);
     }
 
     function onUp(draggableGO: GameObject) {
@@ -215,5 +208,5 @@ export const useRaycaster = (
       window.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("mousemove", onMove);
     };
-  }, [threeRef, worldRef, gameObjectManager, roundState, placementRef]);
+  }, [worldRef, gameObjectManager, roundState, placementRef]);
 };

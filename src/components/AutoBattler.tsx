@@ -70,13 +70,14 @@ const AutoBattler: React.FC = () => {
   }, []);
 
   // Setup Three.js scene and Physics World
-  const { threeRef, sceneRef } = useThreeScene(containerRef, isLoaded);
+  const { threeScene } = useThreeScene(containerRef, isLoaded);
+
   const {
     worldRef,
     gameObjectManagerRef,
     unitManagerRef,
     projectileManagerRef,
-  } = usePhysicsWorld(sceneRef, isLoaded);
+  } = usePhysicsWorld(threeScene, isLoaded);
 
   // Callback function to link RoundManager back to React state
   const onRoundStateChange = useCallback((newState: any) => {
@@ -88,7 +89,6 @@ const AutoBattler: React.FC = () => {
     // You can also update player gold or other states here if needed
   }, []);
 
-  // Instantiate RoundManager once all systems are ready
   useEffect(() => {
     if (
       isLoaded &&
@@ -99,6 +99,7 @@ const AutoBattler: React.FC = () => {
       worldRef.current &&
       projectileManagerRef.current
     ) {
+      console.log("setting up round manager");
       roundManagerRef.current = new RoundManager(
         unitManagerRef.current,
         gameObjectManagerRef.current,
@@ -109,14 +110,30 @@ const AutoBattler: React.FC = () => {
         onRoundStateChange
       );
     }
-  }, [isLoaded, onRoundStateChange]);
+  }, [
+    isLoaded,
+    onRoundStateChange,
+    worldRef,
+    unitManagerRef,
+    gameObjectManagerRef,
+    placementRef,
+    threeScene,
+    projectileManagerRef,
+  ]);
 
   // Load Map and Collision
-  useMapManager(threeRef, worldRef, gameObjectManagerRef, currentMap, isLoaded);
+
+  useMapManager(
+    threeScene,
+    worldRef,
+    gameObjectManagerRef,
+    currentMap,
+    isLoaded
+  );
 
   // Main Game Render Loop - now calls roundManager.update()
   useGameLoop(
-    threeRef,
+    threeScene,
     worldRef.current,
     gameObjectManagerRef.current,
     unitManagerRef.current,
@@ -125,7 +142,7 @@ const AutoBattler: React.FC = () => {
   );
 
   useRaycaster(
-    threeRef,
+    threeScene,
     worldRef,
     gameObjectManagerRef,
     roundState,
@@ -136,9 +153,14 @@ const AutoBattler: React.FC = () => {
     placementRef.current && player
       ? getMaxUnits(placementRef.current.getGridTiles())
       : 0;
+  const sceneRef = useRef(threeScene?.scene);
+  if (threeScene) {
+    sceneRef.current = threeScene.scene;
+  }
 
   // Game actions now delegate to the RoundManager
-  const startGame = useCallback(() => {
+  const startGame = () => {
+    console.log(isLoaded, roundManagerRef.current);
     if (isLoaded && roundManagerRef.current) {
       const newPlayer = { id: 1, gold: 100, units: [] };
       setPlayer(newPlayer);
@@ -147,7 +169,7 @@ const AutoBattler: React.FC = () => {
     } else {
       alert("Game assets or systems not ready. Please wait.");
     }
-  }, [isLoaded]);
+  };
 
   const startBattlePhase = useCallback(() => {
     if (!player || player.units.length === 0) {
@@ -246,10 +268,10 @@ const AutoBattler: React.FC = () => {
         onStartBattlePhase={startBattlePhase}
       />
 
-      {threeRef.current && sceneRef.current && isLoaded && (
+      {threeScene && isLoaded && (
         <UnitPlacementSystem
           ref={placementRef}
-          scene={sceneRef.current}
+          scene={threeScene.scene}
           position={placementSystemPosition}
           tileSize={2}
           gridSize={6}

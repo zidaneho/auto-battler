@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+// src/hooks/useThreeScene.ts
+
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
@@ -13,15 +15,13 @@ export const useThreeScene = (
   containerRef: React.RefObject<HTMLDivElement | null>,
   isLoaded: boolean
 ) => {
-  const threeRef = useRef<ThreeSceneRef | undefined>(undefined);
-  const sceneRef = useRef<THREE.Scene | undefined>(undefined);
+  const [threeScene, setThreeScene] = useState<ThreeSceneRef | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !isLoaded) return;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a202c);
-    sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -40,15 +40,13 @@ export const useThreeScene = (
     renderer.shadowMap.enabled = true;
     containerRef.current.appendChild(renderer.domElement);
 
-    // Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
 
-    threeRef.current = { scene, camera, renderer, controls };
+    setThreeScene({ scene, camera, renderer, controls });
 
-    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -57,8 +55,8 @@ export const useThreeScene = (
     scene.add(directionalLight);
 
     const handleResize = () => {
-      if (!containerRef.current || !threeRef.current) return;
-      const { camera: cam, renderer: rend } = threeRef.current;
+      if (!containerRef.current || !threeScene) return;
+      const { camera: cam, renderer: rend } = threeScene;
       cam.aspect =
         containerRef.current.clientWidth / containerRef.current.clientHeight;
       cam.updateProjectionMatrix();
@@ -76,10 +74,9 @@ export const useThreeScene = (
       }
       controls.dispose();
       renderer.dispose();
-      sceneRef.current = undefined;
-      threeRef.current = undefined;
+      setThreeScene(null);
     };
   }, [containerRef, isLoaded]);
 
-  return { threeRef, sceneRef };
+  return { threeScene };
 };

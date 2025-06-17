@@ -5,9 +5,10 @@ import { GameObjectManager } from "../ecs/GameObjectManager"; // Adjust path
 import { UnitManager } from "../units/UnitManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
 import { RoundManager } from "@/gameLogic/roundManager";
+import { ThreeSceneRef } from "./useThreeScene";
 
 export const usePhysicsWorld = (
-  sceneRef: React.RefObject<THREE.Scene | undefined>, // Depends on scene for ProjectileManager
+  sceneRef: ThreeSceneRef | null, // Depends on scene for ProjectileManager
   isLoaded: boolean // Ensure it runs after initial assets/scene might be ready
 ) => {
   const worldRef = useRef<RAPIER.World | undefined>(undefined);
@@ -17,9 +18,9 @@ export const usePhysicsWorld = (
   const roundManagerRef = useRef<RoundManager | undefined>(undefined);
 
   useEffect(() => {
-    if (!isLoaded) return; // Basic gate
+    if (!isLoaded || sceneRef == null) return; // Basic gate
 
-    if (!worldRef.current && sceneRef.current) {
+    if (!worldRef.current && sceneRef) {
       // Ensure scene is available for ProjectileManager
       const gravity = { x: 0.0, y: -9.81, z: 0.0 };
       const world = new RAPIER.World(gravity);
@@ -32,7 +33,7 @@ export const usePhysicsWorld = (
 
       projectileManagerRef.current = new ProjectileManager(
         goManager,
-        sceneRef.current, // Pass the actual scene object
+        sceneRef.scene, // Pass the actual scene object
         world
       );
       console.log("Physics world and managers initialized.");
@@ -42,7 +43,7 @@ export const usePhysicsWorld = (
       // Cleanup physics world and managers if necessary upon unmount or dependency change
       // worldRef.current?.free(); // Rapier world cleanup
       worldRef.current = undefined;
-      gameObjectManagerRef.current =undefined;
+      gameObjectManagerRef.current = undefined;
       unitManagerRef.current = undefined;
       projectileManagerRef.current = undefined;
     };
