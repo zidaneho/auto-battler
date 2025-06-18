@@ -6,6 +6,7 @@ import { Vector3 } from "three";
 import { GameObject } from "@/ecs/GameObject";
 import { useModelStore } from "@/components/ModelStore";
 import { GameConfig } from "@/components/GlobalsConfig";
+import { AttackDef } from "@/components/UnitBlueprint";
 
 export class Archer extends Unit {
   projectileManager: ProjectileManager;
@@ -19,11 +20,12 @@ export class Archer extends Unit {
     gameObject: GameObject,
     model: any,
     teamId: number,
-    spawnPosition:Vector3,
+    spawnPosition: Vector3,
+    attackDef: AttackDef,
     projectileManager: ProjectileManager,
     projectileSpawnPoint: Vector3
   ) {
-    super(gameObject, model, teamId,spawnPosition);
+    super(gameObject, model, teamId, spawnPosition, attackDef);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
@@ -53,7 +55,7 @@ export class Archer extends Unit {
             );
 
             vector.normalize();
-            vector.multiplyScalar(this.unitStats.moveSpeed * delta);
+            vector.multiplyScalar(this.moveSpeed * delta);
 
             this.rigidbody?.move(vector);
             this.gameObject.lookAt(vector, this.forward);
@@ -68,12 +70,12 @@ export class Archer extends Unit {
           this.attackTimer = 0;
           this.hasAttacked = false;
 
-          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
           this.skinInstance.playAnimation("attack_A");
 
           const rawClipLength = this.skinInstance.getClipLength(); // unscaled by attackSpeed
           this.attackClipLength =
-            rawClipLength * (1 / this.unitStats.attackSpeed);
+            rawClipLength * (1 / this.attackComponent.attackSpeed);
 
           if (this.target != null) {
             const result = new THREE.Vector3();
@@ -89,7 +91,7 @@ export class Archer extends Unit {
           if (this.attackClipLength === undefined) {
             return;
           }
-          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
           this.attackTimer += delta;
 
           if (
@@ -113,7 +115,12 @@ export class Archer extends Unit {
                 GameConfig.gravityScalar,
                 targetPos,
                 this.teamId,
-                this.unitStats.attack // damage
+                this.attackComponent.getAttackReport(
+                  attackDef.power,
+                  attackDef.accuracy,
+                  attackDef.attackType,
+                  this.target.evasion
+                )
               );
             } else {
               console.warn("Arrow model 'arrow1' not found in store.");

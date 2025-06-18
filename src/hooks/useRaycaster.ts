@@ -19,7 +19,7 @@ export const useRaycaster = (
 ) => {
   useEffect(() => {
     //drag useEffect. should only be enabled in setup mode.
-    if (roundState <= RoundState.Setup) return;
+    if (roundState !== RoundState.Setup) return;
     const pointer = new THREE.Vector2();
     const pointerMove = new THREE.Vector2();
     var draggableGO: GameObject | null;

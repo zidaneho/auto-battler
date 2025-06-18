@@ -1,15 +1,16 @@
+import { AttackReport } from "@/stats/AttackReport";
 import { GameComponent } from "../ecs/GameComponent";
 import { GameObject } from "../ecs/GameObject";
-import { HealthComponent } from "../components/HealthComponent";
+import { HealthComponent } from "../stats/HealthComponent";
 import { Unit } from "@/units/Unit";
 
 export class ProjectileDamage extends GameComponent {
-  damage: number;
+  attackReport : AttackReport
   teamId: number;
 
-  constructor(gameObject: GameObject, teamId: number, damage: number) {
+  constructor(gameObject: GameObject, teamId: number, attackReport:AttackReport) {
     super(gameObject);
-    this.damage = damage;
+    this.attackReport = attackReport;
     this.teamId = teamId;
 
     this.gameObject.on("collision", ({ otherGO, started }) => {
@@ -17,7 +18,7 @@ export class ProjectileDamage extends GameComponent {
       if (otherGO.tag === "unit") {
         const otherUnit = otherGO.getComponent(Unit);
         if (otherUnit && otherUnit.teamId !== this.teamId) {
-          otherUnit.healthComponent.takeDamage(this.damage);
+          otherUnit.healthComponent.takeDamage(attackReport);
           this.gameObject.markedForRemoval = true;
         }
       } else if (otherGO.tag === "terrain") {

@@ -3,7 +3,7 @@ import { ProjectileManager } from "@/projectiles/ProjectileManager";
 import { UnitManager } from "@/units/UnitManager";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
-import { spawnSingleUnit } from "./unitActions";
+import { spawnSingleUnit } from "../units/unitActions";
 import { enemyProfiles, SpawnArea } from "./enemyProfiles";
 import {
   GridTile,
@@ -127,11 +127,10 @@ export function spawnEnemyWave({
     if (!availableTile) {
       availableTile = getNextAvailableSlot(fallbackSlots, placementSystem);
     }
-    
+
     // The systems are now accessed directly from the function parameters
     if (availableTile) {
       const spawnPosition = availableTile.position;
-      console.log("spawning unit");
       const unitGO = spawnSingleUnit({
         blueprint: selectedProfile.blueprint,
         playerIdToSpawn: ENEMY_TEAM_ID,

@@ -2,6 +2,7 @@ import { Unit } from "./Unit";
 import * as THREE from "three";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
 import { GameObject } from "@/ecs/GameObject";
+import { AttackDef } from "@/components/UnitBlueprint";
 
 export class Knight extends Unit {
   hasAttacked: boolean = false;
@@ -9,8 +10,14 @@ export class Knight extends Unit {
   attackClipLength: number | undefined;
   damagePoint: number;
 
-  constructor(gameObject: GameObject, model: any, teamId: number, spawnPosition:THREE.Vector3) {
-    super(gameObject, model, teamId,spawnPosition);
+  constructor(
+    gameObject: GameObject,
+    model: any,
+    teamId: number,
+    spawnPosition: THREE.Vector3,
+    attackDef:AttackDef
+  ) {
+    super(gameObject, model, teamId, spawnPosition,attackDef);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
@@ -41,7 +48,7 @@ export class Knight extends Unit {
               this.gameObject.transform.position
             );
             vector.normalize();
-            vector.multiplyScalar(this.unitStats.moveSpeed * delta);
+            vector.multiplyScalar(this.moveSpeed * delta);
 
             this.rigidbody?.move(vector);
             this.gameObject.lookAt(vector, this.forward);
@@ -68,7 +75,7 @@ export class Knight extends Unit {
             this.gameObject.lookAt(vector, this.forward);
           }
 
-          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
           this.attackTimer += delta;
 
           if (
@@ -77,12 +84,12 @@ export class Knight extends Unit {
             this.attackTimer >=
               this.damagePoint *
                 this.attackClipLength *
-                (1 / this.unitStats.attackSpeed)
+                (1 / this.attackComponent.attackSpeed)
           ) {
             this.dealDamage(this.target);
           } else if (
             this.attackTimer >=
-            this.attackClipLength * (1 / this.unitStats.attackSpeed)
+            this.attackClipLength * (1 / this.attackComponent.attackSpeed)
           ) {
             if (this.target != null && this.target.healthComponent.isAlive()) {
               this.fsm.transition("attack", true);

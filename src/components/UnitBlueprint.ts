@@ -8,15 +8,30 @@ export type UnitBlueprint = {
   name: string;
   iconUrl?: string;
   cost: number;
-  stats: {
-    moveSpeed: number;
-    attack: number;
-    attackSpeed: number;
-    health: number;
-    healingPower: number;
-  };
+  stats: UnitBlueprintStats;
   collider: {
     size: THREE.Vector3;
     offset: THREE.Vector3;
   };
+  attackDef: AttackDef;
+};
+
+export type AttackDef = {
+  name:string,
+  description:string,
+  power:number, 
+  accuracy: number, //0.0-1.0
+  attackType: "physical"|"magical",
+}
+
+export type UnitBlueprintStats = {
+  health: number;
+  armor: number;
+  magArmor: number;
+  attack: number;
+  attackSpeed: number;
+  critChance: number;
+  range: number;
+  moveSpeed: number;
+  healingPower: number;
 };

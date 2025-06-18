@@ -1,15 +1,15 @@
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 import { GameObject } from "../ecs/GameObject"; // Adjust path
-import { UnitManager } from "../units/UnitManager"; // Adjust path
+import { UnitManager } from "./UnitManager"; // Adjust path
 import { GameObjectManager } from "../ecs/GameObjectManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
-import { Archer } from "../units/Archer"; // Adjust path
+import { Archer } from "./Archer"; // Adjust path
 // import { Priest } from "../units/Priest"; // If Priest needs specific args
 import { UnitBlueprint } from "@/components/UnitBlueprint"; // Adjust path
 import { useModelStore } from "@/components/ModelStore"; // Adjust path
-import { UnitStats } from "../units/UnitStats"; // Adjust path
-import { HealthComponent } from "@/components/HealthComponent"; // Adjust path
+import { UnitStats } from "./UnitStats"; // Adjust path
+import { HealthComponent } from "@/stats/HealthComponent"; // Adjust path
 import { CharacterRigidbody } from "../physics/CharacterRigidbody"; // Adjust path
 
 interface SpawnSingleUnitParams {
@@ -41,7 +41,7 @@ export const spawnSingleUnit = ({
     return null;
   }
 
-  const unitArgs: any[] = [playerIdToSpawn, position]; // Common arg: teamId. Model is handled by createUnit directly.
+  const unitArgs: any[] = []; // Common arg: teamId. Model is handled by createUnit directly.
 
   if (blueprint.unitClass === Archer) {
     if (!projectileManager) {
@@ -57,7 +57,10 @@ export const spawnSingleUnit = ({
 
   const unitGameObject = unitManager.createUnit(
     blueprint.unitClass,
+    blueprint.stats,
+    playerIdToSpawn,
     position,
+    blueprint.attackDef,
     gameObjectManager,
     scene,
     `${blueprint.name}_P${playerIdToSpawn}`, // More unique name
@@ -71,24 +74,8 @@ export const spawnSingleUnit = ({
   if (unitGameObject) {
     const unitComponent = unitGameObject.getComponent(blueprint.unitClass);
     if (unitComponent) {
-      const statsComp = unitGameObject.getComponent(UnitStats);
-      if (statsComp) {
-        statsComp.health = blueprint.stats.health;
-        statsComp.maxHealth = blueprint.stats.health * 2; // Or use blueprint.stats.maxHealth if available
-        statsComp.attack = blueprint.stats.attack;
-        statsComp.attackSpeed = blueprint.stats.attackSpeed;
-        statsComp.moveSpeed = blueprint.stats.moveSpeed;
-        statsComp.healingPower = blueprint.stats.healingPower;
-      }
-      const healthComponent = unitGameObject.getComponent(HealthComponent);
-      if (healthComponent) {
-        healthComponent.health = blueprint.stats.health;
-        healthComponent.maxHealth = blueprint.stats.health * 2; // Or use blueprint.stats.maxHealth
-      }
-
       const rb = unitGameObject.getComponent(CharacterRigidbody);
       rb?.setPosition(position.clone());
-
       console.log(
         `Spawned ${
           blueprint.name

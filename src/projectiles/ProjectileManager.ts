@@ -11,6 +11,7 @@ import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
 import { ProjectileDamage } from "./ProjectileDamage";
 import { Model } from "../components/ModelStore";
+import { AttackReport } from "@/stats/AttackReport";
 
 export class ProjectileManager {
   gameObjectManager: any; // Replace 'any' with the actual type of gameObjectManager
@@ -39,7 +40,7 @@ export class ProjectileManager {
     gravity: number,
     targetPos: Vector3,
     teamId: number,
-    damage: number
+    attackReport:AttackReport
   ): void {
     const gameObject = this.gameObjectManager.createGameObject(
       this.scene,
@@ -72,7 +73,7 @@ export class ProjectileManager {
       targetPos,
       gravity
     );
-    gameObject.addComponent(ProjectileDamage, teamId, damage);
+    gameObject.addComponent(ProjectileDamage, teamId, attackReport);
     gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 
     this.projectiles.add(gameObject);

@@ -1,8 +1,9 @@
 import { Unit } from "./Unit";
 import * as THREE from "three";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
-import { HealthComponent } from "@/components/HealthComponent";
+import { HealthComponent } from "@/stats/HealthComponent";
 import { GameObject } from "@/ecs/GameObject";
+import { AttackDef } from "@/components/UnitBlueprint";
 
 export class Priest extends Unit {
   hasAttacked: boolean = false;
@@ -10,8 +11,14 @@ export class Priest extends Unit {
   attackClipLength: number | undefined;
   damagePoint: number;
 
-  constructor(gameObject: GameObject, model: any, teamId: number,spawnPosition:THREE.Vector3) {
-    super(gameObject, model, teamId,spawnPosition);
+  constructor(
+    gameObject: GameObject,
+    model: any,
+    teamId: number,
+    spawnPosition: THREE.Vector3,
+    attackDef:AttackDef,
+  ) {
+    super(gameObject, model, teamId, spawnPosition,attackDef);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
@@ -48,7 +55,7 @@ export class Priest extends Unit {
                 this.gameObject.transform.position
               )
               .normalize()
-              .multiplyScalar(this.unitStats.moveSpeed * delta);
+              .multiplyScalar(this.moveSpeed * delta);
 
             this.rigidbody?.move(direction);
             this.gameObject.lookAt(direction, this.forward);
@@ -79,7 +86,7 @@ export class Priest extends Unit {
             this.gameObject.lookAt(vector, this.forward);
           }
 
-          this.skinInstance.setAnimationSpeed(this.unitStats.attackSpeed);
+          this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
           this.attackTimer += delta;
 
           if (
@@ -88,13 +95,13 @@ export class Priest extends Unit {
             this.attackTimer >=
               this.damagePoint *
                 this.attackClipLength *
-                (1 / this.unitStats.attackSpeed)
+                (1 / this.attackComponent.attackSpeed)
           ) {
             this.healTarget(this.target);
             this.hasAttacked = true;
           } else if (
             this.attackTimer >=
-            this.attackClipLength * (1 / this.unitStats.attackSpeed)
+            this.attackClipLength * (1 / this.attackComponent.attackSpeed)
           ) {
             // If the target still needs healing, keep healing
             if (
@@ -124,7 +131,7 @@ export class Priest extends Unit {
 
   healTarget(target: Unit) {
     if (target.healthComponent != null && target.healthComponent.isAlive()) {
-      target.healthComponent.heal(this.unitStats.healingPower);
+      target.healthComponent.heal(this.healthComponent.healingPower);
     }
   }
 

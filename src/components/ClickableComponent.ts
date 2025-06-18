@@ -1,3 +1,4 @@
+
 import { GameComponent } from "@/ecs/GameComponent";
 import { GameObject } from "@/ecs/GameObject";
 

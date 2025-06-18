@@ -36,7 +36,7 @@ import GameUI from "./GameUI";
 import BuyMenuContainer from "@/components/BuyMenuContainer";
 
 // Game Logic
-import { spawnSingleUnit } from "@/gameLogic/unitActions";
+import { spawnSingleUnit } from "@/units/unitActions";
 
 // Types
 import { Player } from "@/types/gameTypes";
@@ -87,6 +87,10 @@ const AutoBattler: React.FC = () => {
     if (newState.isGameActive !== undefined)
       setIsGameActive(newState.isGameActive);
     // You can also update player gold or other states here if needed
+    if (newState.player !== undefined) {
+      // Use the functional form of setState to avoid stale state issues
+      setPlayer((currentPlayer) => ({ ...currentPlayer, ...newState.player }));
+    }
   }, []);
 
   useEffect(() => {
@@ -137,8 +141,8 @@ const AutoBattler: React.FC = () => {
     worldRef.current,
     gameObjectManagerRef.current,
     unitManagerRef.current,
-    isGameActive,
-    roundState
+    roundManagerRef.current,
+    isGameActive
   );
 
   useRaycaster(
@@ -159,8 +163,7 @@ const AutoBattler: React.FC = () => {
   }
 
   // Game actions now delegate to the RoundManager
-  const startGame = () => {
-    console.log(isLoaded, roundManagerRef.current);
+  const startGame = () => { 
     if (isLoaded && roundManagerRef.current) {
       const newPlayer = { id: 1, gold: 100, units: [] };
       setPlayer(newPlayer);

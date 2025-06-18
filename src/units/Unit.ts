@@ -1,17 +1,24 @@
 import { GameComponent } from "@/ecs/GameComponent";
 import { SkinInstance } from "@/components/SkinInstance";
-import { UnitStats } from "./UnitStats";
+import { UnitStats } from "@/units/UnitStats";
 import * as THREE from "three";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
-import { HealthComponent } from "@/components/HealthComponent";
+import { HealthComponent } from "@/stats/HealthComponent";
 import { GameObject } from "@/ecs/GameObject";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
+import { AttackComponent } from "@/stats/AttackComponent";
+import { BuffComponent } from "../stats/BuffComponent";
+import { AttackDef } from "@/components/UnitBlueprint";
 
 export class Unit extends GameComponent {
   // Made Unit an abstract class
   teamId: number;
   target: Unit | null;
-  unitStats: UnitStats;
+  stats: UnitStats;
+  attackDef: AttackDef;
+  attackComponent: AttackComponent;
+  dirtyStats: boolean = true;
+  buffComponent: BuffComponent;
   skinInstance: SkinInstance;
   healthComponent: HealthComponent;
   rigidbody?: CharacterRigidbody; //Rigidbody can be undefined
@@ -19,9 +26,17 @@ export class Unit extends GameComponent {
   hasAttacked: boolean; //added hasAttacked
   fsm: FiniteStateMachine<string>;
   //gridPosition is to save the unit's position when it gets dragged & droppped
-  gridPosition:THREE.Vector3;
+  gridPosition: THREE.Vector3;
+  moveSpeed: number;
+  evasion: number;
 
-  constructor(gameObject: GameObject, model: any, teamId: number, spawnPosition: THREE.Vector3) {
+  constructor(
+    gameObject: GameObject,
+    model: any,
+    teamId: number,
+    spawnPosition: THREE.Vector3,
+    attackDef: AttackDef
+  ) {
     // Added GameObject type
     super(gameObject);
 
@@ -32,9 +47,27 @@ export class Unit extends GameComponent {
     this.target = null;
     this.hasAttacked = false;
 
-    this.unitStats = gameObject.getComponent(UnitStats)!; // ! asserts non-null
+    this.attackDef = attackDef;
+
+    this.stats = gameObject.getComponent(UnitStats)!; // ! asserts non-null
     this.skinInstance = gameObject.addComponent(SkinInstance, model);
-    this.healthComponent = gameObject.getComponent(HealthComponent)!; // ! asserts non-null
+
+    this.healthComponent = gameObject.addComponent(
+      HealthComponent,
+      this.stats.maxHealth,
+      this.stats.baseArmor,
+      this.stats.baseMagArmor
+    ); // ! asserts non-null
+    this.attackComponent = gameObject.addComponent(
+      AttackComponent,
+      this.stats.baseAttack,
+      this.stats.baseAttackSpeed,
+      this.stats.baseCritChance,
+      this.stats.baseAttackRange
+    );
+    this.buffComponent = gameObject.addComponent(BuffComponent);
+    this.moveSpeed = this.stats.baseMoveSpeed;
+    this.evasion = this.stats.baseEvasion;
     this.rigidbody = gameObject.getComponent(CharacterRigidbody);
 
     this.forward = new THREE.Vector3(0, 0, 1);
@@ -65,8 +98,13 @@ export class Unit extends GameComponent {
     if (target == null) {
       return;
     }
-
-    target.healthComponent.takeDamage(this.unitStats.attack);
+    const attackReport = this.attackComponent.getAttackReport(
+      this.attackDef.power,
+      this.attackDef.accuracy,
+      this.attackDef.attackType,
+      target.evasion
+    );
+    target.healthComponent.takeDamage(attackReport);
     this.hasAttacked = true;
   }
   //a function that should be overridden by unique classes
