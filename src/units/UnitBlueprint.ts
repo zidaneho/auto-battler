@@ -7,7 +7,8 @@ export type UnitBlueprint = {
   modelKey: string;
   name: string;
   iconUrl?: string;
-  cost: number;
+  cost: number; // the base price of the unit in gold
+  startCost : number // the cost of the unit to be on the starting team
   stats: UnitBlueprintStats;
   collider: {
     size: THREE.Vector3;

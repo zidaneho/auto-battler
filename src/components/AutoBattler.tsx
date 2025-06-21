@@ -83,6 +83,7 @@ const AutoBattler: React.FC = () => {
 
   // Callback function to link RoundManager back to React state
   const onRoundStateChange = useCallback((newState: any) => {
+   
     if (newState.roundState !== undefined) setRoundState(newState.roundState);
     if (newState.currentRound !== undefined)
       setCurrentRound(newState.currentRound);

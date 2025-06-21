@@ -1,25 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import * as TWEEN from "@tweenjs/tween.js";
+import { UnitBlueprint } from "@/units/UnitBlueprint";
+import { useModelStore } from "./ModelStore";
+import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 
-const EnlistScene: React.FC = () => {
+interface EnlistSceneProps {
+  enemies: UnitBlueprint[];
+}
+
+const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [targetRotation, setTargetRotation] = useState(0);
   const visualRotation = useRef({ angle: 0 });
 
-  const unitCount = 16;
-  const radius = 10;
+  // Use the length of the incoming enemies array
+  const unitCount = enemies.length;
+  const radius = unitCount > 1 ? 10 : 0; // Adjust radius for single unit case
 
   const handleRotateLeft = () => {
-    setTargetRotation((prevAngle) => prevAngle - (Math.PI * 2) / unitCount);
+    if (unitCount > 1) {
+      setTargetRotation((prevAngle) => prevAngle - (Math.PI * 2) / unitCount);
+    }
   };
 
   const handleRotateRight = () => {
-    setTargetRotation((prevAngle) => prevAngle + (Math.PI * 2) / unitCount);
+    if (unitCount > 1) {
+      setTargetRotation((prevAngle) => prevAngle + (Math.PI * 2) / unitCount);
+    }
   };
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || unitCount === 0) return;
     const currentContainer = containerRef.current;
 
     const scene = new THREE.Scene();
@@ -41,30 +53,48 @@ const EnlistScene: React.FC = () => {
     );
     currentContainer.appendChild(renderer.domElement);
 
-    const geometry = new THREE.BoxGeometry(1, 2, 1);
-    const materials: THREE.Material[] = [];
-    const cubes: THREE.Object3D[] = [];
+    // Array to hold the unit models and their animation mixers
+    const models: { model: THREE.Object3D; mixer: THREE.AnimationMixer }[] = [];
 
-    for (let i = 0; i < unitCount; i++) {
-      const hue = i / unitCount;
-      const color = new THREE.Color().setHSL(hue, 1.0, 0.5);
-      const material = new THREE.MeshBasicMaterial({ color: color });
-      materials.push(material);
-      const cube = new THREE.Mesh(geometry, material);
-      scene.add(cube);
-      cubes.push(cube);
-    }
+    // Loop through the enemies and create a 3D model for each
+    enemies.forEach((blueprint) => {
+      const modelData = useModelStore.getState().models[blueprint.modelKey];
+      if (modelData && modelData.gltf) {
+        const model = SkeletonUtils.clone(modelData.gltf);
+        const mixer = new THREE.AnimationMixer(model);
 
+        // Find and play the idle animation
+        const idleClip = Object.values(modelData.animations).find(
+          (clip) =>
+            clip.name.toLowerCase().includes("idle") ||
+            clip.name.toLowerCase().includes("idle_a")
+        );
+        if (idleClip) {
+          mixer.clipAction(idleClip).play();
+        }
+
+        scene.add(model);
+        models.push({ model, mixer });
+      }
+    });
+
+    const clock = new THREE.Clock();
     const animate = () => {
+      const delta = clock.getDelta();
       TWEEN.update();
-      cubes.forEach((cube, i) => {
+
+      // Animate each model
+      models.forEach(({ model, mixer }, i) => {
         const angle =
           (i / unitCount) * Math.PI * 2 + visualRotation.current.angle;
         const xPos = Math.cos(angle) * radius;
         const zPos = Math.sin(angle) * radius;
-        cube.position.set(xPos, 1, zPos);
-        cube.lookAt(0, 1, 0);
+        model.position.set(xPos, 1, zPos);
+        model.lookAt(0, 1, 0);
+
+        mixer.update(delta);
       });
+
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     };
@@ -86,10 +116,9 @@ const EnlistScene: React.FC = () => {
       }
       TWEEN.removeAll();
       renderer.dispose();
-      geometry.dispose();
-      materials.forEach((m) => m.dispose());
+      // No need to dispose geometry/materials as they are managed by the store
     };
-  }, []);
+  }, [enemies, radius, unitCount]); // Rerun effect if enemies change
 
   useEffect(() => {
     new TWEEN.Tween(visualRotation.current)
@@ -116,16 +145,15 @@ const EnlistScene: React.FC = () => {
 
   return (
     <div className="game-container">
-      {/* 3D Canvas Container - This will now take up the remaining space */}
+      {/* 3D Canvas Container */}
       <div
         ref={containerRef}
         style={{ flex: 1, overflow: "hidden", backgroundColor: "#111" }}
       />
 
-      {/* Unit Details & Rotation UI - Removed flex: 1 */}
+      {/* Unit Details & Rotation UI */}
       <div
         style={{
-          /* flex: 1, */ // <--- REMOVED
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -134,7 +162,11 @@ const EnlistScene: React.FC = () => {
           boxSizing: "border-box",
         }}
       >
-        <button style={buttonStyle} onClick={handleRotateLeft}>
+        <button
+          style={buttonStyle}
+          onClick={handleRotateLeft}
+          disabled={unitCount <= 1}
+        >
           &lt;
         </button>
         <div
@@ -150,15 +182,18 @@ const EnlistScene: React.FC = () => {
           <h3>Unit Details</h3>
           <p>Example text for the selected unit.</p>
         </div>
-        <button style={buttonStyle} onClick={handleRotateRight}>
+        <button
+          style={buttonStyle}
+          onClick={handleRotateRight}
+          disabled={unitCount <= 1}
+        >
           &gt;
         </button>
       </div>
 
-      {/* IVs & Summary UI - Removed flex: 1 */}
+      {/* IVs & Summary UI */}
       <div
         style={{
-          /* flex: 1, */ // <--- REMOVED
           display: "flex",
           justifyContent: "center",
           alignItems: "center",

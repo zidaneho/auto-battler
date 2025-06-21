@@ -8,6 +8,7 @@ import { UnitManager } from "@/units/UnitManager";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
 import { Player } from "@/types/gameTypes";
+import { RoundDef } from "./RoundDef";
 
 export enum RoundState {
   Inactive,
@@ -26,6 +27,7 @@ export class RoundManager {
   // Public state
   roundState: RoundState = RoundState.Inactive;
   currentRound: number = 1;
+  roundDef : RoundDef | null = null;
 
   // System Components (now direct members)
   private unitManager: UnitManager;
@@ -39,6 +41,7 @@ export class RoundManager {
   private roundTimer: number = 0;
   private earlyWinCheckTimer: number = 0;
   private player: Player | undefined;
+  
 
   // Flags
   private hasSpawnedEnemies: boolean = false;
@@ -104,7 +107,7 @@ export class RoundManager {
         this.resetPhaseFlags();
         if (this.unitManager && !this.hasSpawnedEnemies) {
           // Reconstruct a 'systems' object for the external function call
-          spawnEnemyWave({
+          this.roundDef = spawnEnemyWave({
             budget: calculateBudget(this.currentRound),
             currentRound: this.currentRound,
             unitManager: this.unitManager,

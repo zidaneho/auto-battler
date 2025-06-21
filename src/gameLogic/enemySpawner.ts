@@ -4,12 +4,14 @@ import { UnitManager } from "@/units/UnitManager";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
 import { spawnSingleUnit } from "../units/unitActions";
-import { enemyProfiles, SpawnArea } from "./enemyProfiles";
+import { EnemyProfile, enemyProfiles, SpawnArea } from "./enemyProfiles";
 import {
   GridTile,
   UnitPlacementSystemHandle,
 } from "../units/UnitPlacementSystem";
 import { Unit } from "@/units/Unit";
+import { RoundDef } from "./RoundDef";
+import { UnitBlueprint } from "@/units/UnitBlueprint";
 
 export const ENEMY_TEAM_ID = 2;
 
@@ -35,16 +37,16 @@ export function spawnEnemyWave({
   scene,
   world,
   projectileManager,
-}: EnemySpawnerParams) {
+}: EnemySpawnerParams): RoundDef {
   if (!placementSystem) {
     console.error("Placement system not available for spawning enemies.");
-    return;
+    return new RoundDef(currentRound, null);
   }
 
   const gridTiles = placementSystem.getGridTiles();
   if (!gridTiles || gridTiles.length === 0 || gridTiles[0].length === 0) {
     console.error("Grid tiles not available or invalid.");
-    return;
+    return new RoundDef(currentRound, null);
   }
 
   let remainingBudget = budget;
@@ -58,7 +60,7 @@ export function spawnEnemyWave({
 
   if (enemyRowCount <= 0) {
     console.error("No rows available for enemy spawning.");
-    return;
+    return new RoundDef(currentRound, null);
   } else if (enemyRowCount === 1) {
     frontRowsEndIndex = enemyHalfStartRow + 1;
     backRowsStartIndex = enemyHalfStartRow;
@@ -98,9 +100,10 @@ export function spawnEnemyWave({
 
   if (availableEnemyProfiles.length === 0) {
     console.warn("No enemy profiles available for spawning.");
-    return;
+    return new RoundDef(currentRound, null);
   }
 
+  const enemies: UnitBlueprint[] = [];
   while (remainingBudget > 0 && attempts < MAX_SPAWN_ATTEMPTS) {
     attempts++;
 
@@ -141,18 +144,15 @@ export function spawnEnemyWave({
         position: spawnPosition,
         projectileManager,
       });
-
-      if (unitGO) {
-        const unit = unitGO.getComponent(Unit);
-        const tile = placementSystem.getGrid(spawnPosition);
-        if (unit && tile) {
-          placementSystem.markOccupied(tile.row, tile.col, unit);
-        }
-
-        remainingBudget -= selectedProfile.spawnCost;
+      const unit = unitGO?.getComponent(Unit);
+      const tile = placementSystem.getGrid(spawnPosition);
+      if (unitGO && unit && tile) {
+        placementSystem.markOccupied(tile.row, tile.col, unit);
+        enemies.push(selectedProfile.blueprint);
         console.log(
           `Spawned enemy: ${selectedProfile.blueprint.name} at (${tile?.row}, ${tile?.col}). Budget left: ${remainingBudget}`
         );
+        remainingBudget -= selectedProfile.spawnCost;
       } else {
         console.warn(`Failed to spawn ${selectedProfile.blueprint.name}`);
       }
@@ -161,9 +161,12 @@ export function spawnEnemyWave({
       break;
     }
   }
+
   console.log(
     `Enemy wave spawning complete. Final budget remaining: ${remainingBudget}`
   );
+
+  return new RoundDef(currentRound, enemies);
 }
 
 // Helper functions remain unchanged

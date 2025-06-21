@@ -16,7 +16,7 @@ import {
   UnitBlueprint,
   UnitBlueprintStats,
 } from "@/units/UnitBlueprint";
-import { useModelStore } from "@/components/ModelStore";
+import { Model, useModelStore } from "@/components/ModelStore";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { ClickableComponent } from "@/components/ClickableComponent";
 import { CollisionComponent } from "@/physics/CollisionComponent";
@@ -40,7 +40,7 @@ export class UnitManager {
     gameObjectManager: GameObjectManager,
     parent: THREE.Object3D,
     name: string,
-    model: any,
+    model: Model,
     physics_world: RAPIER.World,
     collider_offset: Vector3,
     colliderSize: Vector3,
@@ -71,10 +71,12 @@ export class UnitManager {
 
     const unit = gameObject.addComponent(
       UnitType,
+      //default args for Unit
       model,
       teamId,
       spawnPosition,
       attackDef,
+      //args for specific classes (order matters)
       ...unitArgs
     );
     unit.enabled = false;
