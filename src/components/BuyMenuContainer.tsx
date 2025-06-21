@@ -1,12 +1,12 @@
 import React from "react";
 import * as THREE from "three";
 import BuyMenu from "@/components/BuyMenu"; // Adjust path
-import { UnitBlueprint } from "@/components/UnitBlueprint"; // Adjust path
-import { allUnitBlueprints } from "@/components/UnitBlueprintList"; // Adjust path
+import { UnitBlueprint } from "@/units/UnitBlueprint"; // Adjust path
+import { allUnitBlueprints } from "@/units/UnitBlueprintList"; // Adjust path
 import {
   GridTile,
   UnitPlacementSystemHandle,
-} from "@/components/UnitPlacementSystem"; // Adjust path
+} from "@/units/UnitPlacementSystem"; // Adjust path
 import { Player } from "@/types/gameTypes"; // Adjust path
 
 interface BuyMenuContainerProps {
@@ -31,7 +31,6 @@ const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
   maxUnitsPerPlayer,
   onPurchaseUnit,
 }) => {
-  
   if (!isGameActive || roundState !== "setup" || !placementRef.current) {
     return null;
   }

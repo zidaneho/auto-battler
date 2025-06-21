@@ -1,5 +1,5 @@
 import { ClickableComponent } from "@/components/ClickableComponent";
-import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
+import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { GameObject } from "@/ecs/GameObject";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { RoundState } from "@/gameLogic/roundManager";

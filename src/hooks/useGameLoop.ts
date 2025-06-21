@@ -12,7 +12,8 @@ export const useGameLoop = (
   gameObjectManager: GameObjectManager | undefined,
   unitManager: UnitManager | undefined,
   roundManager: RoundManager | null, // Pass the entire manager
-  isGameActive: boolean
+  isGameActive: boolean,
+  isOverlayActive: boolean
 ) => {
   useEffect(() => {
     // Exit if essential systems aren't ready or the game isn't active
@@ -29,12 +30,16 @@ export const useGameLoop = (
 
     const { scene, camera, renderer, controls } = threeScene;
 
+    renderer.autoClear = false;
+
     let animationFrameId: number;
     const clock = new THREE.Clock();
 
     const render = () => {
       const delta = clock.getDelta();
       const now = clock.getElapsedTime();
+
+      renderer.clear();
 
       // 1. Update game logic managers
       roundManager.update(delta);
@@ -53,6 +58,11 @@ export const useGameLoop = (
 
     // Start the loop
     render();
+
+    if (isOverlayActive) {
+      renderer.clearDepth(); // Clear depth buffer to draw on top
+      renderer.render(threeScene.overlayScene, threeScene.overlayCamera);
+    }
 
     // Cleanup function to cancel the loop when the component unmounts
     return () => {

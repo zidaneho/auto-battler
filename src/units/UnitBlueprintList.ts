@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { Knight } from "../units/Knight";
+import { Knight } from "./Knight";
 import { UnitBlueprint } from "./UnitBlueprint";
-import { Archer } from "../units/Archer";
-import { Priest } from "../units/Priest";
+import { Archer } from "./Archer";
+import { Priest } from "./Priest";
 
 export const knightBlueprint: UnitBlueprint = {
   unitClass: Knight,
@@ -11,12 +11,12 @@ export const knightBlueprint: UnitBlueprint = {
   cost: 50,
   stats: {
     health: 20,
-    armor: 10,       // Added
-    magArmor: 5,     // Added
+    armor: 10, // Added
+    magArmor: 5, // Added
     attack: 5,
     attackSpeed: 1,
     critChance: 0.1, // Added
-    range: 1,        // Added
+    range: 1, // Added
     moveSpeed: 1,
     healingPower: 0,
   },
@@ -24,7 +24,8 @@ export const knightBlueprint: UnitBlueprint = {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
-  attackDef: { // Added
+  attackDef: {
+    // Added
     name: "Knight Attack",
     description: "A strong sword swing.",
     power: 5,
@@ -39,12 +40,12 @@ export const archerBlueprint: UnitBlueprint = {
   cost: 50,
   stats: {
     health: 10,
-    armor: 3,        // Added
-    magArmor: 2,     // Added
+    armor: 3, // Added
+    magArmor: 2, // Added
     attack: 3,
     attackSpeed: 1,
     critChance: 0.2, // Added
-    range: 5,        // Added
+    range: 5, // Added
     moveSpeed: 1,
     healingPower: 0,
   },
@@ -52,7 +53,8 @@ export const archerBlueprint: UnitBlueprint = {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
-  attackDef: { // Added
+  attackDef: {
+    // Added
     name: "Archer Shot",
     description: "A precise arrow shot.",
     power: 5,
@@ -67,12 +69,12 @@ export const priestBlueprint: UnitBlueprint = {
   cost: 50,
   stats: {
     health: 10,
-    armor: 2,        // Added
-    magArmor: 8,     // Added
+    armor: 2, // Added
+    magArmor: 8, // Added
     attack: 3,
     attackSpeed: 1,
-    critChance: 0.05,// Added
-    range: 4,        // Added
+    critChance: 0.05, // Added
+    range: 4, // Added
     moveSpeed: 1,
     healingPower: 4,
   },
@@ -80,7 +82,8 @@ export const priestBlueprint: UnitBlueprint = {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
-  attackDef: { // Added
+  attackDef: {
+    // Added
     name: "Priest Smite",
     description: "A divine magical attack.",
     power: 5,

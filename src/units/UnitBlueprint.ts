@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { GameObject } from "../ecs/GameObject";
-import { Unit } from "../units/Unit";
+import { Unit } from "./Unit";
 
 export type UnitBlueprint = {
   unitClass: new (gameObject: GameObject, ...args: any[]) => Unit;
@@ -17,12 +17,12 @@ export type UnitBlueprint = {
 };
 
 export type AttackDef = {
-  name:string,
-  description:string,
-  power:number, 
-  accuracy: number, //0.0-1.0
-  attackType: "physical"|"magical",
-}
+  name: string;
+  description: string;
+  power: number;
+  accuracy: number; //0.0-1.0
+  attackType: "physical" | "magical";
+};
 
 export type UnitBlueprintStats = {
   health: number;

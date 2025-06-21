@@ -8,7 +8,7 @@ import { GameObject } from "@/ecs/GameObject";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
 import { AttackComponent } from "@/stats/AttackComponent";
 import { BuffComponent } from "../stats/BuffComponent";
-import { AttackDef } from "@/components/UnitBlueprint";
+import { AttackDef } from "@/units/UnitBlueprint";
 
 export class Unit extends GameComponent {
   // Made Unit an abstract class

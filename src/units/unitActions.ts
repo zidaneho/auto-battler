@@ -6,7 +6,7 @@ import { GameObjectManager } from "../ecs/GameObjectManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
 import { Archer } from "./Archer"; // Adjust path
 // import { Priest } from "../units/Priest"; // If Priest needs specific args
-import { UnitBlueprint } from "@/components/UnitBlueprint"; // Adjust path
+import { UnitBlueprint } from "@/units/UnitBlueprint"; // Adjust path
 import { useModelStore } from "@/components/ModelStore"; // Adjust path
 import { UnitStats } from "./UnitStats"; // Adjust path
 import { HealthComponent } from "@/stats/HealthComponent"; // Adjust path

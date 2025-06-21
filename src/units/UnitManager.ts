@@ -15,7 +15,7 @@ import {
   AttackDef,
   UnitBlueprint,
   UnitBlueprintStats,
-} from "@/components/UnitBlueprint";
+} from "@/units/UnitBlueprint";
 import { useModelStore } from "@/components/ModelStore";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { ClickableComponent } from "@/components/ClickableComponent";

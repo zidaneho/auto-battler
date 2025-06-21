@@ -8,7 +8,7 @@ import { enemyProfiles, SpawnArea } from "./enemyProfiles";
 import {
   GridTile,
   UnitPlacementSystemHandle,
-} from "../components/UnitPlacementSystem";
+} from "../units/UnitPlacementSystem";
 import { Unit } from "@/units/Unit";
 
 export const ENEMY_TEAM_ID = 2;

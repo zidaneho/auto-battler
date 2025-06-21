@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
 import { HealthComponent } from "@/stats/HealthComponent";
 import { GameObject } from "@/ecs/GameObject";
-import { AttackDef } from "@/components/UnitBlueprint";
+import { AttackDef } from "@/units/UnitBlueprint";
 
 export class Priest extends Unit {
   hasAttacked: boolean = false;
@@ -16,9 +16,9 @@ export class Priest extends Unit {
     model: any,
     teamId: number,
     spawnPosition: THREE.Vector3,
-    attackDef:AttackDef,
+    attackDef: AttackDef
   ) {
-    super(gameObject, model, teamId, spawnPosition,attackDef);
+    super(gameObject, model, teamId, spawnPosition, attackDef);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {

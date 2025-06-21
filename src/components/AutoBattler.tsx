@@ -15,14 +15,14 @@ import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { UnitManager } from "@/units/UnitManager";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
 import { Archer } from "@/units/Archer";
-import { UnitBlueprint } from "@/components/UnitBlueprint";
+import { UnitBlueprint } from "@/units/UnitBlueprint";
 import { models as globalModelList } from "@/components/meshes/ModelList";
 import {
   GridTile,
   UnitPlacementSystem,
   UnitPlacementSystemHandle,
   getMaxUnits,
-} from "@/components/UnitPlacementSystem";
+} from "@/units/UnitPlacementSystem";
 import { loadGLTFModels } from "@/components/useGLTFModels";
 
 // Custom Hooks
@@ -43,6 +43,8 @@ import { Player } from "@/types/gameTypes";
 import { useRaycaster } from "@/hooks/useRaycaster";
 import { Unit } from "@/units/Unit";
 import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import the class and enum
+import { ItemBlueprint } from "@/items/ItemBlueprint";
+import ShopMenuContainer from "./ShopMenuContainer";
 
 const AutoBattler: React.FC = () => {
   // State management
@@ -142,7 +144,8 @@ const AutoBattler: React.FC = () => {
     gameObjectManagerRef.current,
     unitManagerRef.current,
     roundManagerRef.current,
-    isGameActive
+    isGameActive,
+    false
   );
 
   useRaycaster(
@@ -163,9 +166,9 @@ const AutoBattler: React.FC = () => {
   }
 
   // Game actions now delegate to the RoundManager
-  const startGame = () => { 
+  const startGame = () => {
     if (isLoaded && roundManagerRef.current) {
-      const newPlayer = { id: 1, gold: 100, units: [] };
+      const newPlayer = { id: 1, gold: 100, items: [], units: [] };
       setPlayer(newPlayer);
       roundManagerRef.current.startGame(newPlayer);
       setIsGameActive(true);
@@ -243,10 +246,37 @@ const AutoBattler: React.FC = () => {
     [player, maxUnits]
   );
 
+  const handlePurchaseItem = (item: ItemBlueprint, playerId: number) => {
+    setPlayer((prevPlayer) => {
+      if (!prevPlayer || prevPlayer.gold < item.cost) {
+        return prevPlayer;
+      }
+      const newPlayer = {
+        ...prevPlayer,
+        gold: prevPlayer.gold - item.cost,
+        items: [...(prevPlayer.items || []), item],
+      };
+      return newPlayer;
+    });
+  };
+  const handleReroll = (playerId: number) => {
+    
+    setPlayer((prevPlayer) => {
+      if (!prevPlayer || prevPlayer.gold < 10) {
+        return prevPlayer;
+      }
+      return {
+        ...prevPlayer,
+        gold: prevPlayer.gold - 10,
+      };
+    });
+  
+  };
+
   // Helper to convert enum to string for UI
   const getRoundStateName = (
     state: RoundState
-  ): "setup" | "battle" | "end" | "inactive" => {
+  ): "setup" | "battle" | "end" | "shop" | "inactive" => {
     return RoundState[state].toLowerCase() as any;
   };
 
@@ -270,6 +300,21 @@ const AutoBattler: React.FC = () => {
         onStartGame={startGame}
         onStartBattlePhase={startBattlePhase}
       />
+
+      {isGameActive && roundState === RoundState.Shop && (
+        <ShopMenuContainer
+          players={player ? [player] : []}
+          isGameActive={isGameActive}
+          roundState={getRoundStateName(roundState)}
+          placementRef={placementRef}
+          maxUnitsPerPlayer={maxUnits}
+          onPurchaseUnit={(blueprint, tile) =>
+            handlePurchaseUnit(blueprint, tile)
+          }
+          onPurchaseItem={handlePurchaseItem}
+          onReroll={handleReroll}
+        />
+      )}
 
       {threeScene && isLoaded && (
         <UnitPlacementSystem

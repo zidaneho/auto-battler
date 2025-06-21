@@ -1,7 +1,10 @@
 import React from "react";
 import * as THREE from "three";
-import { UnitBlueprint } from "./UnitBlueprint";
-import { GridTile, UnitPlacementSystemHandle } from "./UnitPlacementSystem";
+import { UnitBlueprint } from "../units/UnitBlueprint";
+import {
+  GridTile,
+  UnitPlacementSystemHandle,
+} from "../units/UnitPlacementSystem";
 
 interface BuyMenuProps {
   playerId: number;

@@ -1,4 +1,4 @@
-import { UnitPlacementSystemHandle } from "@/components/UnitPlacementSystem";
+import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
@@ -14,6 +14,7 @@ export enum RoundState {
   Setup,
   Battle,
   Shop,
+  Enlist,
   End,
 }
 
@@ -120,6 +121,10 @@ export class RoundManager {
         this.unitManager.setTargets();
         this.unitManager.playAllUnits();
         break;
+      case RoundState.Shop:
+        break;
+      case RoundState.Enlist:
+        break;
       case RoundState.End:
         this.roundTimer = END_TIME;
         break;
@@ -180,7 +185,7 @@ export class RoundManager {
       if (this.player) {
         this.player.gold += goldReward;
       }
-      this.setRoundState(RoundState.Setup);
+      this.setRoundState(RoundState.Shop);
     } else {
       this.setRoundState(RoundState.Inactive);
     }

@@ -1,10 +1,10 @@
 // src/gameLogic/enemyProfiles.ts
-import { UnitBlueprint } from "@/components/UnitBlueprint";
+import { UnitBlueprint } from "@/units/UnitBlueprint";
 import {
   knightBlueprint,
   archerBlueprint,
   priestBlueprint,
-} from "@/components/UnitBlueprintList";
+} from "@/units/UnitBlueprintList";
 
 export enum SpawnArea {
   FRONT,

@@ -6,7 +6,7 @@ import { Vector3 } from "three";
 import { GameObject } from "@/ecs/GameObject";
 import { useModelStore } from "@/components/ModelStore";
 import { GameConfig } from "@/components/GlobalsConfig";
-import { AttackDef } from "@/components/UnitBlueprint";
+import { AttackDef } from "@/units/UnitBlueprint";
 
 export class Archer extends Unit {
   projectileManager: ProjectileManager;

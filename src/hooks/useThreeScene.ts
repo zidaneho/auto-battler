@@ -9,6 +9,9 @@ export interface ThreeSceneRef {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   controls: OrbitControls;
+
+  overlayScene: THREE.Scene;
+  overlayCamera: THREE.OrthographicCamera;
 }
 
 export const useThreeScene = (
@@ -32,6 +35,18 @@ export const useThreeScene = (
     camera.position.set(0, 15, 20);
     camera.lookAt(0, 0, 0);
 
+    const overlayScene = new THREE.Scene();
+    const { clientWidth, clientHeight } = containerRef.current;
+    const overlayCamera = new THREE.OrthographicCamera(
+      -clientWidth / 2,
+      clientWidth / 2,
+      clientHeight / 2,
+      -clientHeight / 2,
+      1,
+      1000
+    );
+    overlayCamera.position.z = 10;
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(
       containerRef.current.clientWidth,
@@ -45,7 +60,14 @@ export const useThreeScene = (
     controls.dampingFactor = 0.05;
     controls.target.set(0, 0, 0);
 
-    setThreeScene({ scene, camera, renderer, controls });
+    setThreeScene({
+      scene,
+      camera,
+      renderer,
+      controls,
+      overlayScene,
+      overlayCamera,
+    });
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -57,9 +79,15 @@ export const useThreeScene = (
     const handleResize = () => {
       if (!containerRef.current || !threeScene) return;
       const { camera: cam, renderer: rend } = threeScene;
-      cam.aspect =
-        containerRef.current.clientWidth / containerRef.current.clientHeight;
+      cam.aspect = clientWidth / clientHeight;
       cam.updateProjectionMatrix();
+
+      overlayCamera.left = -clientWidth / 2;
+      overlayCamera.right = clientWidth / 2;
+      overlayCamera.top = clientHeight / 2;
+      overlayCamera.bottom = -clientHeight / 2;
+      overlayCamera.updateProjectionMatrix();
+
       rend.setSize(
         containerRef.current.clientWidth,
         containerRef.current.clientHeight
