@@ -1,8 +1,22 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import * as TWEEN from "@tweenjs/tween.js";
 
 const EnlistScene: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [targetRotation, setTargetRotation] = useState(0);
+  const visualRotation = useRef({ angle: 0 });
+
+  const unitCount = 16;
+  const radius = 10;
+
+  const handleRotateLeft = () => {
+    setTargetRotation((prevAngle) => prevAngle - (Math.PI * 2) / unitCount);
+  };
+
+  const handleRotateRight = () => {
+    setTargetRotation((prevAngle) => prevAngle + (Math.PI * 2) / unitCount);
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -17,8 +31,6 @@ const EnlistScene: React.FC = () => {
       0.1,
       1000
     );
-    const unitCount = 16;
-    const radius = 10;
     camera.position.set(0, 3, radius + 5);
     camera.lookAt(0, 0, 0);
 
@@ -29,30 +41,30 @@ const EnlistScene: React.FC = () => {
     );
     currentContainer.appendChild(renderer.domElement);
 
-    // --- Add Cubes ---
     const geometry = new THREE.BoxGeometry(1, 2, 1);
-    
-    // --- MODIFICATION: Store materials and cubes for cleanup ---
     const materials: THREE.Material[] = [];
     const cubes: THREE.Object3D[] = [];
 
     for (let i = 0; i < unitCount; i++) {
-      // --- MODIFICATION: Create a unique color and material for each cube ---
-      const hue = i / unitCount; // Go from 0 to 1 around the color wheel
+      const hue = i / unitCount;
       const color = new THREE.Color().setHSL(hue, 1.0, 0.5);
       const material = new THREE.MeshBasicMaterial({ color: color });
-      materials.push(material); // Store material for cleanup
-
+      materials.push(material);
       const cube = new THREE.Mesh(geometry, material);
-      const angle = (i / unitCount) * Math.PI * 2;
-      const xPos = Math.cos(angle) * radius;
-      const zPos = Math.sin(angle) * radius;
-      cube.position.set(xPos, 0, zPos);
       scene.add(cube);
       cubes.push(cube);
     }
 
     const animate = () => {
+      TWEEN.update();
+      cubes.forEach((cube, i) => {
+        const angle =
+          (i / unitCount) * Math.PI * 2 + visualRotation.current.angle;
+        const xPos = Math.cos(angle) * radius;
+        const zPos = Math.sin(angle) * radius;
+        cube.position.set(xPos, 1, zPos);
+        cube.lookAt(0, 1, 0);
+      });
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     };
@@ -60,8 +72,7 @@ const EnlistScene: React.FC = () => {
 
     const handleResize = () => {
       if (!currentContainer) return;
-      const clientWidth = currentContainer.clientWidth;
-      const clientHeight = currentContainer.clientHeight;
+      const { clientWidth, clientHeight } = currentContainer;
       camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(clientWidth, clientHeight);
@@ -73,30 +84,81 @@ const EnlistScene: React.FC = () => {
       if (currentContainer && renderer.domElement) {
         currentContainer.removeChild(renderer.domElement);
       }
+      TWEEN.removeAll();
       renderer.dispose();
       geometry.dispose();
-      // --- MODIFICATION: Dispose of all created materials ---
-      for (const material of materials) {
-        material.dispose();
-      }
+      materials.forEach((m) => m.dispose());
     };
   }, []);
 
-  // The component's JSX remains the same
+  useEffect(() => {
+    new TWEEN.Tween(visualRotation.current)
+      .to({ angle: targetRotation }, 500)
+      .easing(TWEEN.Easing.Quadratic.Out)
+      .start();
+  }, [targetRotation]);
+
+  const buttonStyle: React.CSSProperties = {
+    background: "#4a5568",
+    color: "white",
+    border: "none",
+    borderRadius: "50%",
+    width: "50px",
+    height: "50px",
+    fontSize: "24px",
+    cursor: "pointer",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    margin: "0 20px",
+    userSelect: "none",
+  };
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "#111",
-      }}
-    >
-      <div ref={containerRef} style={{ flex: 1, overflow: "hidden" }} />
+    <div className="game-container">
+      {/* 3D Canvas Container - This will now take up the remaining space */}
+      <div
+        ref={containerRef}
+        style={{ flex: 1, overflow: "hidden", backgroundColor: "#111" }}
+      />
+
+      {/* Unit Details & Rotation UI - Removed flex: 1 */}
       <div
         style={{
-          flex: 1,
+          /* flex: 1, */ // <--- REMOVED
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#1a202c",
+          padding: "10px",
+          boxSizing: "border-box",
+        }}
+      >
+        <button style={buttonStyle} onClick={handleRotateLeft}>
+          &lt;
+        </button>
+        <div
+          style={{
+            border: "2px solid #4a5568",
+            borderRadius: "8px",
+            padding: "20px",
+            color: "white",
+            textAlign: "center",
+            minWidth: "250px",
+          }}
+        >
+          <h3>Unit Details</h3>
+          <p>Example text for the selected unit.</p>
+        </div>
+        <button style={buttonStyle} onClick={handleRotateRight}>
+          &gt;
+        </button>
+      </div>
+
+      {/* IVs & Summary UI - Removed flex: 1 */}
+      <div
+        style={{
+          /* flex: 1, */ // <--- REMOVED
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -107,18 +169,46 @@ const EnlistScene: React.FC = () => {
       >
         <div
           style={{
-            border: "2px solid #4a5568",
-            borderRadius: "8px",
-            padding: "20px",
-            color: "white",
-            textAlign: "center",
+            display: "flex",
+            flexDirection: "row",
+            gap: "40px",
           }}
         >
-          <h3>Unit Details</h3>
-          <p>Example text for the selected unit.</p>
+          <div
+            style={{
+              border: "2px solid #4a5568",
+              borderRadius: "8px",
+              padding: "20px",
+              color: "white",
+              textAlign: "center",
+              minWidth: "250px",
+              minHeight: "250px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <h3>IVs</h3>
+            <p>Example text for the selected unit.</p>
+          </div>
+          <div
+            style={{
+              border: "2px solid #4a5568",
+              borderRadius: "8px",
+              padding: "20px",
+              color: "white",
+              textAlign: "center",
+              minWidth: "250px",
+              minHeight: "250px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <h3>Summary</h3>
+            <p>Example text for the selected unit.</p>
+          </div>
         </div>
-        
-        
       </div>
     </div>
   );

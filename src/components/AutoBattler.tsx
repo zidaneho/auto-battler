@@ -260,7 +260,6 @@ const AutoBattler: React.FC = () => {
     });
   };
   const handleReroll = (playerId: number) => {
-    
     setPlayer((prevPlayer) => {
       if (!prevPlayer || prevPlayer.gold < 10) {
         return prevPlayer;
@@ -270,7 +269,6 @@ const AutoBattler: React.FC = () => {
         gold: prevPlayer.gold - 10,
       };
     });
-  
   };
 
   // Helper to convert enum to string for UI
@@ -281,15 +279,7 @@ const AutoBattler: React.FC = () => {
   };
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: "relative",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
-      }}
-    >
+    <div ref={containerRef} className="game-container">
       <GameUI
         currentRound={currentRound}
         roundState={getRoundStateName(roundState)}
