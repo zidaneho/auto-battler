@@ -10,7 +10,7 @@ import { GameObject } from "@/ecs/GameObject";
 import { Vector3 } from "three";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
-import { Unit } from "./Unit";
+import { Unit, UnitConstructionParams } from "./Unit";
 import {
   AttackDef,
   UnitBlueprint,
@@ -32,23 +32,19 @@ export class UnitManager {
   }
 
   createUnit<T extends Unit>(
-    UnitType: new (gameObject: GameObject, ...args: any[]) => T,
-    stats: UnitBlueprintStats,
-    teamId: number,
-    spawnPosition: Vector3,
-    attackDef: AttackDef,
+    UnitType: new (gameObject: GameObject, params: UnitConstructionParams) => T,
+    params: UnitConstructionParams, // <-- Simplified signature
     gameObjectManager: GameObjectManager,
     parent: THREE.Object3D,
     name: string,
     model: Model,
     physics_world: RAPIER.World,
     collider_offset: Vector3,
-    colliderSize: Vector3,
-    ...unitArgs: any[]
+    colliderSize: Vector3
   ): GameObject {
     const gameObject = this.setupUnit(
       gameObjectManager,
-      spawnPosition,
+      params.spawnPosition,
       parent,
       name,
       physics_world,
@@ -58,26 +54,20 @@ export class UnitManager {
 
     gameObject.addComponent(
       UnitStats,
-      stats.health,
-      stats.armor,
-      stats.magArmor,
-      stats.attack,
-      stats.attackSpeed,
-      stats.critChance,
-      stats.range,
-      stats.moveSpeed,
-      stats.healingPower
+      params.blueprint.stats.health,
+      params.blueprint.stats.armor,
+      params.blueprint.stats.magArmor,
+      params.blueprint.stats.attack,
+      params.blueprint.stats.attackSpeed,
+      params.blueprint.stats.critChance,
+      params.blueprint.stats.range,
+      params.blueprint.stats.moveSpeed,
+      params.blueprint.stats.healingPower
     );
 
     const unit = gameObject.addComponent(
       UnitType,
-      //default args for Unit
-      model,
-      teamId,
-      spawnPosition,
-      attackDef,
-      //args for specific classes (order matters)
-      ...unitArgs
+      params // Pass the single params object directly
     );
     unit.enabled = false;
 

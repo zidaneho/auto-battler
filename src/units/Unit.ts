@@ -8,10 +8,23 @@ import { GameObject } from "@/ecs/GameObject";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
 import { AttackComponent } from "@/stats/AttackComponent";
 import { BuffComponent } from "../stats/BuffComponent";
-import { AttackDef } from "@/units/UnitBlueprint";
+import { AttackDef, UnitBlueprint } from "@/units/UnitBlueprint";
+import { Model } from "@/components/ModelStore";
+import { ProjectileManager } from "@/projectiles/ProjectileManager";
+
+export interface UnitConstructionParams {
+  model: Model;
+  teamId: number;
+  spawnPosition: THREE.Vector3;
+  blueprint: UnitBlueprint;
+  // Optional params for subclasses
+  projectileManager?: ProjectileManager;
+  projectileSpawnPoint?: THREE.Vector3;
+}
 
 export class Unit extends GameComponent {
   // Made Unit an abstract class
+  blueprint: UnitBlueprint;
   teamId: number;
   target: Unit | null;
   stats: UnitStats;
@@ -32,25 +45,23 @@ export class Unit extends GameComponent {
 
   constructor(
     gameObject: GameObject,
-    model: any,
-    teamId: number,
-    spawnPosition: THREE.Vector3,
-    attackDef: AttackDef
+    params:UnitConstructionParams
   ) {
     // Added GameObject type
     super(gameObject);
 
-    this.gridPosition = spawnPosition;
+    this.blueprint = params.blueprint;
 
+    this.gridPosition = params.spawnPosition;
     //a team id of 0 means it can attack anyone
-    this.teamId = teamId;
+    this.teamId = params.teamId;
     this.target = null;
     this.hasAttacked = false;
 
-    this.attackDef = attackDef;
+    this.attackDef = params.blueprint.attackDef;
 
     this.stats = gameObject.getComponent(UnitStats)!; // ! asserts non-null
-    this.skinInstance = gameObject.addComponent(SkinInstance, model);
+    this.skinInstance = gameObject.addComponent(SkinInstance, params.model);
 
     this.healthComponent = gameObject.addComponent(
       HealthComponent,

@@ -103,7 +103,7 @@ export function spawnEnemyWave({
     return new RoundDef(currentRound, null);
   }
 
-  const enemies: UnitBlueprint[] = [];
+  const enemies: Unit[] = [];
   while (remainingBudget > 0 && attempts < MAX_SPAWN_ATTEMPTS) {
     attempts++;
 
@@ -148,7 +148,7 @@ export function spawnEnemyWave({
       const tile = placementSystem.getGrid(spawnPosition);
       if (unitGO && unit && tile) {
         placementSystem.markOccupied(tile.row, tile.col, unit);
-        enemies.push(selectedProfile.blueprint);
+        enemies.push(unit);
         console.log(
           `Spawned enemy: ${selectedProfile.blueprint.name} at (${tile?.row}, ${tile?.col}). Budget left: ${remainingBudget}`
         );

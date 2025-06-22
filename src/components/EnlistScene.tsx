@@ -4,31 +4,43 @@ import * as TWEEN from "@tweenjs/tween.js";
 import { UnitBlueprint } from "@/units/UnitBlueprint";
 import { useModelStore } from "./ModelStore";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
+import { Unit } from "@/units/Unit";
 
 interface EnlistSceneProps {
-  enemies: UnitBlueprint[];
+  enemies: Unit[];
+  onProceed: () => void;
 }
 
-const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
+const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies, onProceed }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [targetRotation, setTargetRotation] = useState(0);
   const visualRotation = useRef({ angle: 0 });
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Use the length of the incoming enemies array
   const unitCount = enemies.length;
-  const radius = unitCount > 1 ? 10 : 0; // Adjust radius for single unit case
+
+  let radius = 0;
+  if (unitCount > 1) {
+    const unitSpacing = 4;
+    const circumference = unitCount * unitSpacing;
+    radius = circumference / (2 * Math.PI);
+  }
 
   const handleRotateLeft = () => {
     if (unitCount > 1) {
       setTargetRotation((prevAngle) => prevAngle - (Math.PI * 2) / unitCount);
+      setSelectedIndex((prevIndex) => (prevIndex + 1) % unitCount);
     }
   };
 
   const handleRotateRight = () => {
     if (unitCount > 1) {
       setTargetRotation((prevAngle) => prevAngle + (Math.PI * 2) / unitCount);
+      setSelectedIndex((prevIndex) => (prevIndex - 1 + unitCount) % unitCount);
     }
   };
+
+  const selectedUnit = enemies[selectedIndex];
 
   useEffect(() => {
     if (!containerRef.current || unitCount === 0) return;
@@ -43,7 +55,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
       0.1,
       1000
     );
-    camera.position.set(0, 3, radius + 5);
+    camera.position.set(radius + 5, 3, 0);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -53,17 +65,22 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
     );
     currentContainer.appendChild(renderer.domElement);
 
-    // Array to hold the unit models and their animation mixers
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 15, 10);
+    directionalLight.castShadow = true;
+    scene.add(directionalLight);
+
     const models: { model: THREE.Object3D; mixer: THREE.AnimationMixer }[] = [];
 
-    // Loop through the enemies and create a 3D model for each
-    enemies.forEach((blueprint) => {
-      const modelData = useModelStore.getState().models[blueprint.modelKey];
+    enemies.forEach((unit) => {
+      const modelData =
+        useModelStore.getState().models[unit.blueprint.modelKey];
       if (modelData && modelData.gltf) {
         const model = SkeletonUtils.clone(modelData.gltf);
         const mixer = new THREE.AnimationMixer(model);
 
-        // Find and play the idle animation
         const idleClip = Object.values(modelData.animations).find(
           (clip) =>
             clip.name.toLowerCase().includes("idle") ||
@@ -83,14 +100,18 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
       const delta = clock.getDelta();
       TWEEN.update();
 
-      // Animate each model
       models.forEach(({ model, mixer }, i) => {
         const angle =
           (i / unitCount) * Math.PI * 2 + visualRotation.current.angle;
         const xPos = Math.cos(angle) * radius;
         const zPos = Math.sin(angle) * radius;
-        model.position.set(xPos, 1, zPos);
-        model.lookAt(0, 1, 0);
+        model.position.set(xPos, 0, zPos);
+
+        if (unitCount === 1) {
+          model.lookAt(camera.position.x, 0, camera.position.z);
+        } else {
+          model.lookAt(xPos * 2, 0, zPos * 2);
+        }
 
         mixer.update(delta);
       });
@@ -116,9 +137,8 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
       }
       TWEEN.removeAll();
       renderer.dispose();
-      // No need to dispose geometry/materials as they are managed by the store
     };
-  }, [enemies, radius, unitCount]); // Rerun effect if enemies change
+  }, [enemies, radius, unitCount]);
 
   useEffect(() => {
     new TWEEN.Tween(visualRotation.current)
@@ -144,105 +164,98 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({ enemies }) => {
   };
 
   return (
-    <div className="game-container">
-      {/* 3D Canvas Container */}
-      <div
-        ref={containerRef}
-        style={{ flex: 1, overflow: "hidden", backgroundColor: "#111" }}
-      />
-
-      {/* Unit Details & Rotation UI */}
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 100,
+      }}
+    >
       <div
         style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          width: "85vw",
+          height: "85vh",
           backgroundColor: "#1a202c",
-          padding: "10px",
-          boxSizing: "border-box",
+          border: "2px solid #4a5568",
+          borderRadius: "10px",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
       >
-        <button
-          style={buttonStyle}
-          onClick={handleRotateLeft}
-          disabled={unitCount <= 1}
-        >
-          &lt;
-        </button>
         <div
-          style={{
-            border: "2px solid #4a5568",
-            borderRadius: "8px",
-            padding: "20px",
-            color: "white",
-            textAlign: "center",
-            minWidth: "250px",
-          }}
-        >
-          <h3>Unit Details</h3>
-          <p>Example text for the selected unit.</p>
-        </div>
-        <button
-          style={buttonStyle}
-          onClick={handleRotateRight}
-          disabled={unitCount <= 1}
-        >
-          &gt;
-        </button>
-      </div>
-
-      {/* IVs & Summary UI */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#1a202c",
-          padding: "20px",
-          boxSizing: "border-box",
-        }}
-      >
+          ref={containerRef}
+          style={{ flex: 1, overflow: "hidden", backgroundColor: "#111" }}
+        />
         <div
           style={{
             display: "flex",
-            flexDirection: "row",
-            gap: "40px",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "#1a202c",
+            padding: "20px",
+            boxSizing: "border-box",
+            color: "white",
           }}
         >
-          <div
-            style={{
-              border: "2px solid #4a5568",
-              borderRadius: "8px",
-              padding: "20px",
-              color: "white",
-              textAlign: "center",
-              minWidth: "250px",
-              minHeight: "250px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
+          <button
+            style={buttonStyle}
+            onClick={handleRotateLeft}
+            disabled={unitCount <= 1}
           >
-            <h3>IVs</h3>
-            <p>Example text for the selected unit.</p>
+            &lt;
+          </button>
+
+          <div style={{ textAlign: "center", minWidth: "200px" }}>
+            {selectedUnit && (
+              <>
+                <h3 style={{ margin: 0, fontSize: "24px" }}>
+                  {selectedUnit.blueprint.name}
+                </h3>
+                <p style={{ margin: "5px 0 0 0", fontSize: "18px" }}>
+                  Health: {selectedUnit.healthComponent.maxHealth}
+                </p>
+              </>
+            )}
           </div>
-          <div
-            style={{
-              border: "2px solid #4a5568",
-              borderRadius: "8px",
-              padding: "20px",
-              color: "white",
-              textAlign: "center",
-              minWidth: "250px",
-              minHeight: "250px",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-            }}
+
+          <button
+            style={buttonStyle}
+            onClick={handleRotateRight}
+            disabled={unitCount <= 1}
           >
-            <h3>Summary</h3>
-            <p>Example text for the selected unit.</p>
-          </div>
+            &gt;
+          </button>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            paddingBottom: "20px",
+          }}
+        >
+          <button
+            style={{
+              background: "#2c5282",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "15px 30px",
+              fontSize: "20px",
+              cursor: "pointer",
+            }}
+            onClick={onProceed}
+          >
+            Proceed to Shop
+          </button>
         </div>
       </div>
     </div>

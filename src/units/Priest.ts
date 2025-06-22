@@ -1,4 +1,4 @@
-import { Unit } from "./Unit";
+import { Unit, UnitConstructionParams } from "./Unit";
 import * as THREE from "three";
 import { FiniteStateMachine } from "@/components/FiniteStateMachine";
 import { HealthComponent } from "@/stats/HealthComponent";
@@ -13,19 +13,16 @@ export class Priest extends Unit {
 
   constructor(
     gameObject: GameObject,
-    model: any,
-    teamId: number,
-    spawnPosition: THREE.Vector3,
-    attackDef: AttackDef
+    params:UnitConstructionParams
   ) {
-    super(gameObject, model, teamId, spawnPosition, attackDef);
+    super(gameObject, params);
 
     const deathAction = this.skinInstance.getAction("death_A");
     if (deathAction) {
       deathAction.clampWhenFinished = true;
       deathAction.setLoop(THREE.LoopOnce, 1);
     }
-    this.damagePoint = model.damagePoint1;
+    this.damagePoint = params.model.damagePoint1!;
 
     this.fsm.addStates({
       idle: {

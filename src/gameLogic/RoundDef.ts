@@ -4,9 +4,9 @@ import { UnitBlueprint } from "@/units/UnitBlueprint";
 
 export class RoundDef {
   roundNumber: number;
-  enemies: UnitBlueprint[] | null;
+  enemies: Unit[] | null;
 
-  constructor(roundNumber: number, enemies: UnitBlueprint[] | null) {
+  constructor(roundNumber: number, enemies: Unit[] | null) {
     this.roundNumber = roundNumber;
     this.enemies = enemies;
   }

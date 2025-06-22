@@ -1,3 +1,5 @@
+// src/gameLogic/roundManager.ts
+
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
@@ -27,7 +29,8 @@ export class RoundManager {
   // Public state
   roundState: RoundState = RoundState.Inactive;
   currentRound: number = 1;
-  roundDef : RoundDef | null = null;
+  roundDef: RoundDef | null = null;
+  player: Player | undefined;
 
   // System Components (now direct members)
   private unitManager: UnitManager;
@@ -40,8 +43,6 @@ export class RoundManager {
   // Private state
   private roundTimer: number = 0;
   private earlyWinCheckTimer: number = 0;
-  private player: Player | undefined;
-  
 
   // Flags
   private hasSpawnedEnemies: boolean = false;
@@ -74,6 +75,18 @@ export class RoundManager {
     this.setRoundState(RoundState.Setup);
   }
 
+  proceedToShop() {
+    if (this.roundState === RoundState.Enlist) {
+      this.setRoundState(RoundState.Shop);
+    }
+  }
+
+  endShopPhase() {
+    if (this.roundState === RoundState.Shop) {
+      this.setRoundState(RoundState.Setup);
+    }
+  }
+
   private resetPhaseFlags() {
     this.hasSpawnedEnemies = false;
     this.hasProcessedBattleOutcome = false;
@@ -97,7 +110,6 @@ export class RoundManager {
     this.onStateChange({
       roundState: this.roundState,
       currentRound: this.currentRound,
-      player: this.player,
     });
   }
 
@@ -187,8 +199,9 @@ export class RoundManager {
       const goldReward = 100 * (this.currentRound - 1);
       if (this.player) {
         this.player.gold += goldReward;
+        this.onStateChange({ playerGold: this.player.gold });
       }
-      this.setRoundState(RoundState.Shop);
+      this.setRoundState(RoundState.Enlist);
     } else {
       this.setRoundState(RoundState.Inactive);
     }

@@ -5,12 +5,11 @@ import { UnitManager } from "./UnitManager"; // Adjust path
 import { GameObjectManager } from "../ecs/GameObjectManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
 import { Archer } from "./Archer"; // Adjust path
-// import { Priest } from "../units/Priest"; // If Priest needs specific args
 import { UnitBlueprint } from "@/units/UnitBlueprint"; // Adjust path
 import { useModelStore } from "@/components/ModelStore"; // Adjust path
 import { UnitStats } from "./UnitStats"; // Adjust path
-import { HealthComponent } from "@/stats/HealthComponent"; // Adjust path
 import { CharacterRigidbody } from "../physics/CharacterRigidbody"; // Adjust path
+import { UnitConstructionParams } from "./Unit";
 
 interface SpawnSingleUnitParams {
   blueprint: UnitBlueprint;
@@ -41,8 +40,15 @@ export const spawnSingleUnit = ({
     return null;
   }
 
-  const unitArgs: any[] = []; // Common arg: teamId. Model is handled by createUnit directly.
+  // 1. Assemble the complete construction params object here
+  const constructionParams: UnitConstructionParams = {
+    model: modelData,
+    teamId: playerIdToSpawn,
+    spawnPosition: position,
+    blueprint: blueprint,
+  };
 
+  // 2. Add subclass-specific dependencies directly to the params object
   if (blueprint.unitClass === Archer) {
     if (!projectileManager) {
       console.error(
@@ -50,25 +56,21 @@ export const spawnSingleUnit = ({
       );
       return null;
     }
-    unitArgs.push(projectileManager);
-    unitArgs.push(new THREE.Vector3(0, 1.2, 0.5)); // projectileSpawnPoint for Archer
+    constructionParams.projectileManager = projectileManager;
+    constructionParams.projectileSpawnPoint = new THREE.Vector3(0, 1.2, 0.5);
   }
-  // Add other unit-specific args here, e.g., for Priest
 
+  // 3. Call the simplified createUnit method
   const unitGameObject = unitManager.createUnit(
     blueprint.unitClass,
-    blueprint.stats,
-    playerIdToSpawn,
-    position,
-    blueprint.attackDef,
+    constructionParams, // Pass the single, complete params object
     gameObjectManager,
     scene,
-    `${blueprint.name}_P${playerIdToSpawn}`, // More unique name
-    modelData, // Pass the full modelData object
+    `${blueprint.name}_P${playerIdToSpawn}`,
+    modelData,
     world,
     blueprint.collider.offset.clone(),
-    blueprint.collider.size.clone(),
-    ...unitArgs // Pass teamId and any specific args for the unit component constructor
+    blueprint.collider.size.clone()
   );
 
   if (unitGameObject) {

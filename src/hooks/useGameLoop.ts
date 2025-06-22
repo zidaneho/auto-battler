@@ -1,3 +1,5 @@
+// src/hooks/useGameLoop.ts
+
 import { useEffect } from "react";
 import * as RAPIER from "@dimforge/rapier3d";
 import { GameObjectManager } from "../ecs/GameObjectManager";
@@ -5,6 +7,7 @@ import { UnitManager } from "../units/UnitManager";
 import { ThreeSceneRef } from "./useThreeScene";
 import { RoundManager } from "@/gameLogic/roundManager";
 import * as THREE from "three";
+import { CollisionComponent } from "@/physics/CollisionComponent";
 
 export const useGameLoop = (
   threeScene: ThreeSceneRef | null,
@@ -35,34 +38,49 @@ export const useGameLoop = (
     let animationFrameId: number;
     const clock = new THREE.Clock();
 
+    // --- Fixed-step physics variables ---
+    let accumulator = 0;
+    const physicsTimestep = world.integrationParameters.dt;
+    const eventQueue = gameObjectManager.getEventQueue();
+    // ---
+
     const render = () => {
       const delta = clock.getDelta();
+      accumulator += delta;
+
+      // 1. Step the physics world in fixed increments
+      while (accumulator >= physicsTimestep) {
+        world.step(eventQueue);
+        accumulator -= physicsTimestep;
+      }
+
+      // 2. Handle collision events after stepping
+      gameObjectManager.handleCollisions();
+
+      // 3. Update other game logic with variable delta
       const now = clock.getElapsedTime();
-
-      renderer.clear();
-
-      // 1. Update game logic managers
       roundManager.update(delta);
       unitManager.update(now);
-      gameObjectManager.update(delta);
+      gameObjectManager.update(delta); // No longer steps physics
 
-      // 2. Update camera controls
+      // 4. Update camera controls
       controls.update();
 
-      // 3. Render the scene
+      // 5. Render the scene
+      renderer.clear();
       renderer.render(scene, camera);
 
-      // 4. Request the next frame to create the loop
+      if (isOverlayActive) {
+        renderer.clearDepth(); // Clear depth buffer to draw on top
+        renderer.render(threeScene.overlayScene, threeScene.overlayCamera);
+      }
+
+      // 6. Request the next frame to create the loop
       animationFrameId = requestAnimationFrame(render);
     };
 
     // Start the loop
     render();
-
-    if (isOverlayActive) {
-      renderer.clearDepth(); // Clear depth buffer to draw on top
-      renderer.render(threeScene.overlayScene, threeScene.overlayCamera);
-    }
 
     // Cleanup function to cancel the loop when the component unmounts
     return () => {
@@ -75,5 +93,6 @@ export const useGameLoop = (
     unitManager,
     roundManager,
     isGameActive,
+    isOverlayActive,
   ]);
 };

@@ -1,3 +1,5 @@
+// src/ecs/GameObjectManager.ts
+
 import { SafeArray } from "@/ecs/SafeArray";
 import { GameObject } from "@/ecs/GameObject";
 import * as RAPIER from "@dimforge/rapier3d";
@@ -83,31 +85,32 @@ export class GameObjectManager {
     return this.handleMap.get(handle);
   }
 
+  getEventQueue(): RAPIER.EventQueue {
+    return this.eventQueue;
+  }
+
+  handleCollisions(): void {
+    this.eventQueue.drainCollisionEvents((hA, hB, started) => {
+      const goA = this.handleMap.get(hA);
+      const goB = this.handleMap.get(hB);
+
+      if (goA) {
+        const collision = goA.getComponent(CollisionComponent);
+        if (collision) {
+          collision._notify(goB ?? null, started);
+        }
+      }
+      if (goB) {
+        const collision = goB.getComponent(CollisionComponent);
+        if (collision) {
+          collision._notify(goA ?? null, started);
+        }
+      }
+    });
+  }
+
   update(delta: number): void {
-    if (this.world == null) {
-      console.log("physics world is null!");
-      return;
-    } else {
-      this.world.step(this.eventQueue);
-      this.eventQueue.drainCollisionEvents((hA, hB, started) => {
-        const goA = this.handleMap.get(hA);
-        const goB = this.handleMap.get(hB);
-
-        if (goA) {
-          const collision = goA.getComponent(CollisionComponent);
-          if (collision) {
-            collision._notify(goB ?? null, started);
-          }
-        }
-        if (goB) {
-          const collision = goB.getComponent(CollisionComponent);
-          if (collision) {
-            collision._notify(goA ?? null, started);
-          }
-        }
-      });
-    }
-
+    // World step is now handled in the main game loop
     this.gameObjects.forEach((gameObject) => gameObject.update(delta));
 
     this.gameObjects.forEach((gameObject) => {

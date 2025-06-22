@@ -34,6 +34,7 @@ import { useGameLoop } from "@/hooks/useGameLoop";
 // UI Components
 import GameUI from "./GameUI";
 import BuyMenuContainer from "@/components/BuyMenuContainer";
+import EnlistScene from "./EnlistScene";
 
 // Game Logic
 import { spawnSingleUnit } from "@/units/unitActions";
@@ -51,6 +52,7 @@ const AutoBattler: React.FC = () => {
   const [player, setPlayer] = useState<Player | undefined>(undefined);
   const [currentRound, setCurrentRound] = useState(1);
   const [roundState, setRoundState] = useState<RoundState>(RoundState.Inactive); // Use the enum
+  const [defeatedEnemies, setDefeatedEnemies] = useState<Unit[]>([]);
   const [currentMap, setCurrentMap] =
     useState<keyof typeof globalModelList>("prototypeMap");
   const [isGameActive, setIsGameActive] = useState(false);
@@ -81,18 +83,32 @@ const AutoBattler: React.FC = () => {
     projectileManagerRef,
   } = usePhysicsWorld(threeScene, isLoaded);
 
+  // This effect will keep the RoundManager's player reference up to date
+  useEffect(() => {
+    if (roundManagerRef.current && player) {
+      roundManagerRef.current.player = player;
+    }
+  }, [player]); // This runs every time the player state changes
+
   // Callback function to link RoundManager back to React state
   const onRoundStateChange = useCallback((newState: any) => {
-   
-    if (newState.roundState !== undefined) setRoundState(newState.roundState);
+    if (newState.roundState !== undefined) {
+      setRoundState(newState.roundState);
+      if (newState.roundState === RoundState.End) {
+        const enemies = roundManagerRef.current?.roundDef?.enemies;
+        if (enemies) {
+          setDefeatedEnemies(enemies);
+        }
+      }
+    }
     if (newState.currentRound !== undefined)
       setCurrentRound(newState.currentRound);
     if (newState.isGameActive !== undefined)
       setIsGameActive(newState.isGameActive);
-    // You can also update player gold or other states here if needed
-    if (newState.player !== undefined) {
-      // Use the functional form of setState to avoid stale state issues
-      setPlayer((currentPlayer) => ({ ...currentPlayer, ...newState.player }));
+    if (newState.playerGold !== undefined) {
+      setPlayer((p) =>
+        p ? { ...p, gold: newState.playerGold } : undefined
+      );
     }
   }, []);
 
@@ -272,10 +288,18 @@ const AutoBattler: React.FC = () => {
     });
   };
 
+  const handleProceedToShop = () => {
+    roundManagerRef.current?.proceedToShop();
+  };
+
+  const handleEndShopPhase = () => {
+    roundManagerRef.current?.endShopPhase();
+  };
+
   // Helper to convert enum to string for UI
   const getRoundStateName = (
     state: RoundState
-  ): "setup" | "battle" | "end" | "shop" | "inactive" => {
+  ): "setup" | "battle" | "end" | "shop" | "inactive" | "enlist" => {
     return RoundState[state].toLowerCase() as any;
   };
 
@@ -290,7 +314,15 @@ const AutoBattler: React.FC = () => {
         isGameActive={isGameActive}
         onStartGame={startGame}
         onStartBattlePhase={startBattlePhase}
+        onEndShopPhase={handleEndShopPhase}
       />
+
+      {isGameActive && roundState === RoundState.Enlist && (
+        <EnlistScene
+          enemies={defeatedEnemies}
+          onProceed={handleProceedToShop}
+        />
+      )}
 
       {isGameActive && roundState === RoundState.Shop && (
         <ShopMenuContainer

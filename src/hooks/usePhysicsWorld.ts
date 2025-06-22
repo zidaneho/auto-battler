@@ -1,3 +1,5 @@
+// src/hooks/usePhysicsWorld.ts
+
 import { useEffect, useRef } from "react";
 import * as RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
@@ -24,6 +26,10 @@ export const usePhysicsWorld = (
       // Ensure scene is available for ProjectileManager
       const gravity = { x: 0.0, y: -9.81, z: 0.0 };
       const world = new RAPIER.World(gravity);
+      
+      // Set a fixed timestep for the physics world (e.g., 60 physics steps per second)
+      world.integrationParameters.dt = 1.0 / 60.0;
+      
       worldRef.current = world;
 
       const goManager = new GameObjectManager(world);

@@ -1,3 +1,5 @@
+// src/components/GameUI.tsx
+
 import React from "react";
 import { Player } from "@/types/gameTypes"; // Adjust path
 
@@ -10,6 +12,7 @@ interface GameUIProps {
   isGameActive: boolean;
   onStartGame: () => void;
   onStartBattlePhase: () => void;
+  onEndShopPhase: () => void;
 }
 
 const GameUI: React.FC<GameUIProps> = ({
@@ -21,6 +24,7 @@ const GameUI: React.FC<GameUIProps> = ({
   isGameActive,
   onStartGame,
   onStartBattlePhase,
+  onEndShopPhase,
 }) => {
   return (
     <div
@@ -90,6 +94,23 @@ const GameUI: React.FC<GameUIProps> = ({
           }}
         >
           Start Battle Phase
+        </button>
+      )}
+      {isGameActive && roundState === "shop" && (
+        <button
+          onClick={onEndShopPhase}
+          style={{
+            marginTop: "15px",
+            padding: "10px 18px",
+            fontSize: "16px",
+            backgroundColor: "#38a169", // Green
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Ready for Next Round
         </button>
       )}
     </div>
