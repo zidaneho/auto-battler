@@ -19,7 +19,7 @@ export class GridTile {
   row: number;
   col: number;
   position: THREE.Vector3;
-  occupiedUnit : Unit | null;
+  occupiedUnit: Unit | null;
 
   constructor(row: number, col: number, position: THREE.Vector3) {
     this.row = row;
@@ -43,7 +43,7 @@ export interface UnitPlacementSystemHandle {
   markOccupied: (
     tileRow: number,
     tileCol: number,
-    occupiedUnit : Unit | null,
+    occupiedUnit: Unit | null
   ) => void; // CHANGED: Simplified signature
 }
 
@@ -53,41 +53,51 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
     // CHANGE: The grid is now stored as a 2D array of GridTile objects.
     const gridTilesRef = useRef<GridTile[][]>([]);
 
-    const validLength = tileSize;
+    const gridCenterPosition = position; // Capture the grid's center from props
 
     useImperativeHandle(ref, () => ({
-      getGridTiles: () => gridTilesRef.current, // CHANGED: Expose the GridTile array
+      getGridTiles: () => gridTilesRef.current,
       getTileSize: () => tileSize,
-      getGrid(position: THREE.Vector3): GridTile | null {
-        let closestLength = Infinity;
-        let closestTile: GridTile | undefined;
 
-        // CHANGE: Iterate over the GridTile objects
-        gridTilesRef.current.flat().forEach((tile) => {
-          const distanceTo = position.distanceTo(tile.position);
-          if (distanceTo < closestLength) {
-            closestLength = distanceTo;
-            closestTile = tile;
-          }
-        });
+      // --- REVISED AND MORE EFFICIENT getGrid FUNCTION ---
+      getGrid(worldPosition: THREE.Vector3): GridTile | null {
+        // Calculate the grid's top-left corner in world space.
+        const halfSize = (gridSize * tileSize) / 2;
+        const gridOriginX = gridCenterPosition.x - halfSize;
+        const gridOriginZ = gridCenterPosition.z - halfSize;
 
-        if (closestTile !== undefined && closestLength <= validLength) {
-          return closestTile;
+        // Get the position relative to the grid's origin.
+        const relativeX = worldPosition.x - gridOriginX;
+        const relativeZ = worldPosition.z - gridOriginZ;
+
+        // Calculate the row and column index by dividing by the tile size.
+        // In your grid setup, the X-axis corresponds to the row, and the Z-axis to the column.
+        const row = Math.floor(relativeX / tileSize);
+        const col = Math.floor(relativeZ / tileSize);
+
+        // Check if the calculated indices are within the valid bounds of the grid.
+        if (
+          gridTilesRef.current[row] &&
+          gridTilesRef.current[row][col] !== undefined
+        ) {
+          return gridTilesRef.current[row][col];
         }
 
+        // If the position is outside the grid bounds, return null.
         return null;
       },
-      // CHANGE: This now updates both the tile object and the lookup dictionary
+
       markOccupied: (
         tileRow: number,
         tileCol: number,
-        occupiedUnit : Unit | null
+        occupiedUnit: Unit | null
       ) => {
-        // Find the tile in our grid and update its personal occupied status
-        if (tileRow < 0 || tileRow > gridTilesRef.current.length) return;
-        if (tileCol < 0 || tileCol > gridTilesRef.current[tileRow].length)
-          return;
-        gridTilesRef.current[tileRow][tileCol].occupiedUnit = occupiedUnit;
+        if (
+          gridTilesRef.current[tileRow] &&
+          gridTilesRef.current[tileRow][tileCol] !== undefined
+        ) {
+          gridTilesRef.current[tileRow][tileCol].occupiedUnit = occupiedUnit;
+        }
       },
     }));
 

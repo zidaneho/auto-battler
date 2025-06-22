@@ -1,3 +1,5 @@
+// src/hooks/useRaycaster.ts
+
 import { ClickableComponent } from "@/components/ClickableComponent";
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { GameObject } from "@/ecs/GameObject";
@@ -5,8 +7,8 @@ import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { RoundState } from "@/gameLogic/roundManager";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { Unit } from "@/units/Unit";
-import RAPIER, { World } from "@dimforge/rapier3d";
-import { useEffect } from "react";
+import RAPIER from "@dimforge/rapier3d";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { ThreeSceneRef } from "./useThreeScene";
 
@@ -17,91 +19,110 @@ export const useRaycaster = (
   roundState: RoundState,
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>
 ) => {
+  const draggableGORef = useRef<GameObject | null>(null);
+
   useEffect(() => {
-    //drag useEffect. should only be enabled in setup mode.
-    if (roundState !== RoundState.Setup) return;
-    const pointer = new THREE.Vector2();
-    const pointerMove = new THREE.Vector2();
-    var draggableGO: GameObject | null;
+    if (roundState !== RoundState.Setup || !threeScene) return;
 
-    function moveDraggleGO(
-      event: MouseEvent,
-      camera: THREE.Camera,
-      draggableGO: GameObject
-    ) {
-      pointerMove.x = (event.clientX / window.innerWidth) * 2 - 1;
-      pointerMove.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    const { camera, renderer } = threeScene;
+    const canvas = renderer.domElement;
 
+    // --- Helper to get corrected mouse coordinates ---
+    const getNormalizedCoordinates = (event: MouseEvent): THREE.Vector2 => {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      return new THREE.Vector2(
+        (x / rect.width) * 2 - 1,
+        -(y / rect.height) * 2 + 1
+      );
+    };
+
+    const onMouseDown = (event: MouseEvent) => {
+      console.log("onMouseDown triggered");
+      if (!worldRef.current || !gameObjectManager.current) {
+        console.log("World or GameObjectManager not available");
+        return;
+      }
+
+      const pointer = getNormalizedCoordinates(event);
       const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(pointerMove, camera);
+      raycaster.setFromCamera(pointer, camera);
 
-      // Define a horizontal plane at y = 1 (or wherever your grid is)
+      const origin = raycaster.ray.origin;
+      const direction = raycaster.ray.direction;
+      const rapierRay = new RAPIER.Ray(origin, direction);
+
+      const hit = worldRef.current.castRay(rapierRay, 100, true);
+
+      if (hit?.collider) {
+        const gameObject = gameObjectManager.current.getGameObjectFromCollider(
+          hit.collider.handle
+        );
+
+        if (gameObject) {
+          console.log("Ray hit GameObject:", gameObject.name);
+          const clickable = gameObject.getComponent(ClickableComponent);
+          const unit = gameObject.getComponent(Unit);
+          if (clickable && unit?.teamId === 1) {
+            // Only drag player units
+            draggableGORef.current = gameObject;
+            console.log("Set draggable GameObject:", gameObject.name);
+          } else {
+            console.log("GameObject is not a draggable player unit.");
+          }
+        }
+      } else {
+        console.log("Ray did not hit any colliders.");
+      }
+    };
+
+    const onMouseMove = (event: MouseEvent) => {
+      if (!draggableGORef.current) return;
+
+      const pointer = getNormalizedCoordinates(event);
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(pointer, camera);
+
       const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1);
       const intersectionPoint = new THREE.Vector3();
 
       if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-        // Now this intersectionPoint is a real 3D position on the ground
-        draggableGO.transform.position.set(
-          intersectionPoint.x,
-          intersectionPoint.y,
-          intersectionPoint.z
-        );
+        // console.log(
+        //   `Dragging ${
+        //     draggableGORef.current.name
+        //   } to position: x=${intersectionPoint.x.toFixed(
+        //     2
+        //   )}, y=${intersectionPoint.y.toFixed(
+        //     2
+        //   )}, z=${intersectionPoint.z.toFixed(2)}`
+        // );
+        draggableGORef.current.transform.position.copy(intersectionPoint);
       }
-    }
+    };
 
-    function onClick(event: MouseEvent) {
-      if (!worldRef.current) return;
-      const physicsWorld = worldRef.current;
-
-      pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      if (draggableGO) {
-        onUp(draggableGO);
-        draggableGO = null;
-      } else {
-        const raycaster = new THREE.Raycaster();
-        if (threeScene) {
-          raycaster.setFromCamera(pointer, threeScene?.camera);
-        }
-
-        const origin = raycaster.ray.origin;
-        const direction = raycaster.ray.direction;
-
-        const rapierRay = new RAPIER.Ray(origin, direction);
-        const hit = physicsWorld.castRay(rapierRay, 100, true);
-
-        if (hit && hit.collider) {
-          const colliderHandle = hit.collider.handle;
-          const gameObject =
-            gameObjectManager.current?.getGameObjectFromCollider(
-              colliderHandle
-            );
-
-          if (gameObject) {
-            const clickable = gameObject.getComponent(ClickableComponent);
-            const unit = gameObject.getComponent(Unit);
-
-            // Only allow dragging of player units (team 1)
-            if (clickable && placementRef.current && unit?.teamId === 1) {
-              draggableGO = gameObject;
-              // moveDraggleGO is now called in onMove
-            }
-          }
-        }
+    const onMouseUp = () => {
+      const draggableGO = draggableGORef.current;
+      if (!draggableGO) {
+        // This case is for when the mouse is released without a draggable object, which is normal.
+        // No log is needed here unless for intense debugging.
+        return;
       }
-    }
-    function onMove(event: MouseEvent) {
-      if (!draggableGO || !placementRef.current || !threeScene) return;
-      moveDraggleGO(event, threeScene.camera, draggableGO);
-    }
 
-    function onUp(draggableGO: GameObject) {
-      if (!placementRef.current) return;
+      console.log("onMouseUp triggered for:", draggableGO.name);
+      if (!placementRef.current) {
+        console.error("Placement system reference is not available.");
+        draggableGORef.current = null;
+        return;
+      }
+
       const draggableUnit = draggableGO.getComponent(Unit);
       const body = draggableGO.getComponent(CharacterRigidbody);
 
       if (!draggableUnit || !body) {
-        console.log("Clickable was not a unit!");
+        console.log("Draggable object is missing Unit or Rigidbody component.");
+        draggableGORef.current = null;
         return;
       }
 
@@ -110,39 +131,25 @@ export const useRaycaster = (
       );
       const oldTile = placementRef.current.getGrid(draggableUnit.gridPosition);
 
-      // --- START: PLACEMENT VALIDATION LOGIC ---
       let isPlacementValid = false;
       if (targetTile) {
         const gridTiles = placementRef.current.getGridTiles();
-        const totalRows = gridTiles.length;
-        const midwayPoint = totalRows / 2;
-        const unitTeamId = draggableUnit.teamId;
-
-        // Player (Team 1) can only place on the bottom half of the board
-        if (unitTeamId === 1 && targetTile.row < midwayPoint) {
-          isPlacementValid = true;
-        }
-        // Enemy (Team 2) can only place on the top half
-        else if (unitTeamId === 2 && targetTile.row >= midwayPoint) {
+        const midwayPoint = gridTiles.length / 2;
+        if (draggableUnit.teamId === 1 && targetTile.row < midwayPoint) {
           isPlacementValid = true;
         }
       }
 
       if (!targetTile || !oldTile || !isPlacementValid) {
-        if (targetTile && !isPlacementValid) {
-          console.log(
-            `Invalid placement for Team ${draggableUnit.teamId} at row ${targetTile.row}.`
-          );
-        }
+        console.log(
+          "Invalid placement: No valid target tile or out of bounds. Reverting position."
+        );
         body.setPosition(draggableUnit.gridPosition);
-        return; // Exit the function
-      }
-      // --- END: PLACEMENT VALIDATION LOGIC ---
-
-      // --- The rest of the logic runs only if placement is valid ---
-
-      // Case 1: Dropped on an UNOCCUPIED tile
-      if (!targetTile.occupiedUnit) {
+      } else if (!targetTile.occupiedUnit) {
+        console.log(
+          `Drop on empty tile: Moving ${draggableUnit.gameObject.name} from (${oldTile.row}, ${oldTile.col}) to (${targetTile.row}, ${targetTile.col}).`
+        );
+        // Drop on empty tile
         placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
         placementRef.current.markOccupied(
           targetTile.row,
@@ -150,26 +157,32 @@ export const useRaycaster = (
           draggableUnit
         );
         body.setPosition(targetTile.position);
-        draggableUnit.gridPosition = targetTile.position.clone();
-      }
-      // Case 2: Dropped on an OCCUPIED tile (Swap)
-      else if (
+        draggableUnit.gridPosition.copy(targetTile.position);
+      } else if (
         targetTile.occupiedUnit &&
         targetTile.occupiedUnit !== draggableUnit
       ) {
+        console.log(
+          `Swap with another unit: Swapping ${
+            draggableUnit.gameObject.name
+          } with ${
+            targetTile.occupiedUnit.gameObject.name
+          }, unit goes from ${oldTile.position.toArray()} to ${targetTile.position.toArray()}.`
+        );
+        // Swap with another unit
         const otherUnit = targetTile.occupiedUnit;
         const otherUnitBody =
           otherUnit.gameObject.getComponent(CharacterRigidbody);
 
         if (otherUnitBody) {
-          // Move the other unit to the dragged unit's original tile
+          // Move the other unit to the old tile
           otherUnitBody.setPosition(oldTile.position);
           placementRef.current.markOccupied(
             oldTile.row,
             oldTile.col,
             otherUnit
           );
-          otherUnit.gridPosition = oldTile.position.clone();
+          otherUnit.gridPosition.copy(oldTile.position);
 
           // Move the dragged unit to the target tile
           body.setPosition(targetTile.position);
@@ -178,35 +191,32 @@ export const useRaycaster = (
             targetTile.col,
             draggableUnit
           );
-          draggableUnit.gridPosition = targetTile.position.clone();
+          draggableUnit.gridPosition.copy(targetTile.position);
+        } else {
+          console.error(
+            "Could not swap: The other unit is missing a CharacterRigidbody."
+          );
         }
-      }
-      // Case 3: Dropped back on itself
-      else {
+      } else {
+        console.log("Dropped back on itself: Reverting to original position.");
+        // Dropped back on itself
         body.setPosition(draggableUnit.gridPosition);
       }
-    }
 
-    // Replace 'click' with mousedown and mouseup for better drag-drop feel
-    const onMouseDown = (event: MouseEvent) => {
-      onClick(event);
+      console.log("Finished onMouseUp logic. Clearing draggable GameObject.");
+      draggableGORef.current = null;
     };
 
-    const onMouseUp = () => {
-      if (draggableGO) {
-        onUp(draggableGO);
-        draggableGO = null;
-      }
-    };
-
+    console.log("Setting up raycaster event listeners for setup phase.");
     window.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("mousemove", onMove);
 
     return () => {
+      console.log("Cleaning up raycaster event listeners.");
       window.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("mousemove", onMove);
     };
-  }, [worldRef, gameObjectManager, roundState, placementRef]);
+  }, [threeScene, worldRef, gameObjectManager, roundState, placementRef]);
 };
