@@ -1,4 +1,4 @@
-// src/hooks/useRaycaster.ts
+// src/hooks/useRaycaster.ts (Revised with better logging)
 
 import { ClickableComponent } from "@/components/ClickableComponent";
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
@@ -27,7 +27,6 @@ export const useRaycaster = (
     const { camera, renderer } = threeScene;
     const canvas = renderer.domElement;
 
-    // --- Helper to get corrected mouse coordinates ---
     const getNormalizedCoordinates = (event: MouseEvent): THREE.Vector2 => {
       const rect = canvas.getBoundingClientRect();
       const x = event.clientX - rect.left;
@@ -40,11 +39,7 @@ export const useRaycaster = (
     };
 
     const onMouseDown = (event: MouseEvent) => {
-      console.log("onMouseDown triggered");
-      if (!worldRef.current || !gameObjectManager.current) {
-        console.log("World or GameObjectManager not available");
-        return;
-      }
+      if (!worldRef.current || !gameObjectManager.current) return;
 
       const pointer = getNormalizedCoordinates(event);
       const raycaster = new THREE.Raycaster();
@@ -62,19 +57,12 @@ export const useRaycaster = (
         );
 
         if (gameObject) {
-          console.log("Ray hit GameObject:", gameObject.name);
           const clickable = gameObject.getComponent(ClickableComponent);
           const unit = gameObject.getComponent(Unit);
           if (clickable && unit?.teamId === 1) {
-            // Only drag player units
             draggableGORef.current = gameObject;
-            console.log("Set draggable GameObject:", gameObject.name);
-          } else {
-            console.log("GameObject is not a draggable player unit.");
           }
         }
-      } else {
-        console.log("Ray did not hit any colliders.");
       }
     };
 
@@ -89,30 +77,13 @@ export const useRaycaster = (
       const intersectionPoint = new THREE.Vector3();
 
       if (raycaster.ray.intersectPlane(groundPlane, intersectionPoint)) {
-        // console.log(
-        //   `Dragging ${
-        //     draggableGORef.current.name
-        //   } to position: x=${intersectionPoint.x.toFixed(
-        //     2
-        //   )}, y=${intersectionPoint.y.toFixed(
-        //     2
-        //   )}, z=${intersectionPoint.z.toFixed(2)}`
-        // );
         draggableGORef.current.transform.position.copy(intersectionPoint);
       }
     };
 
     const onMouseUp = () => {
       const draggableGO = draggableGORef.current;
-      if (!draggableGO) {
-        // This case is for when the mouse is released without a draggable object, which is normal.
-        // No log is needed here unless for intense debugging.
-        return;
-      }
-
-      console.log("onMouseUp triggered for:", draggableGO.name);
-      if (!placementRef.current) {
-        console.error("Placement system reference is not available.");
+      if (!draggableGO || !placementRef.current) {
         draggableGORef.current = null;
         return;
       }
@@ -121,7 +92,6 @@ export const useRaycaster = (
       const body = draggableGO.getComponent(CharacterRigidbody);
 
       if (!draggableUnit || !body) {
-        console.log("Draggable object is missing Unit or Rigidbody component.");
         draggableGORef.current = null;
         return;
       }
@@ -131,6 +101,7 @@ export const useRaycaster = (
       );
       const oldTile = placementRef.current.getGrid(draggableUnit.gridPosition);
 
+      // --- START PLACEMENT VALIDATION ---
       let isPlacementValid = false;
       if (targetTile) {
         const gridTiles = placementRef.current.getGridTiles();
@@ -139,17 +110,32 @@ export const useRaycaster = (
           isPlacementValid = true;
         }
       }
+      // --- END PLACEMENT VALIDATION ---
+
+      // --- DECISION LOGIC ---
 
       if (!targetTile || !oldTile || !isPlacementValid) {
         console.log(
-          "Invalid placement: No valid target tile or out of bounds. Reverting position."
+          "%c[DROP FAILED]: Invalid placement. Reverting.",
+          "color: red;"
         );
+        if (!targetTile) console.log("L-> Reason: Target tile is null.");
+        if (!oldTile)
+          console.log(
+            "L-> Reason: Old tile is null (gridPosition might be corrupted)."
+          );
+        if (!isPlacementValid)
+          console.log(
+            `L-> Reason: Placement at row ${targetTile?.row} is not valid for team ${draggableUnit.teamId}.`
+          );
+
         body.setPosition(draggableUnit.gridPosition);
       } else if (!targetTile.occupiedUnit) {
         console.log(
-          `Drop on empty tile: Moving ${draggableUnit.gameObject.name} from (${oldTile.row}, ${oldTile.col}) to (${targetTile.row}, ${targetTile.col}).`
+          `%c[DROP SUCCESS]: Moved to empty tile (${targetTile.row}, ${targetTile.col}).`,
+          "color: green;"
         );
-        // Drop on empty tile
+
         placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
         placementRef.current.markOccupied(
           targetTile.row,
@@ -157,25 +143,28 @@ export const useRaycaster = (
           draggableUnit
         );
         body.setPosition(targetTile.position);
+        console.log(
+          oldTile.toString(),
+          targetTile.toString(),
+          oldTile.position.toArray(),
+          targetTile.position.toArray()
+          //draggableUnit.gridPosition.toArray(),
+        );
         draggableUnit.gridPosition.copy(targetTile.position);
       } else if (
-        targetTile.occupiedUnit &&
-        targetTile.occupiedUnit !== draggableUnit
+        targetTile.occupiedUnit.gameObject.name !==
+        draggableUnit.gameObject.name
       ) {
         console.log(
-          `Swap with another unit: Swapping ${
-            draggableUnit.gameObject.name
-          } with ${
-            targetTile.occupiedUnit.gameObject.name
-          }, unit goes from ${oldTile.position.toArray()} to ${targetTile.position.toArray()}.`
+          `%c[DROP SUCCESS]: Swapping with ${targetTile.occupiedUnit.gameObject.name}.`,
+          "color: blue;"
         );
-        // Swap with another unit
+
         const otherUnit = targetTile.occupiedUnit;
         const otherUnitBody =
           otherUnit.gameObject.getComponent(CharacterRigidbody);
 
         if (otherUnitBody) {
-          // Move the other unit to the old tile
           otherUnitBody.setPosition(oldTile.position);
           placementRef.current.markOccupied(
             oldTile.row,
@@ -184,7 +173,6 @@ export const useRaycaster = (
           );
           otherUnit.gridPosition.copy(oldTile.position);
 
-          // Move the dragged unit to the target tile
           body.setPosition(targetTile.position);
           placementRef.current.markOccupied(
             targetTile.row,
@@ -193,27 +181,28 @@ export const useRaycaster = (
           );
           draggableUnit.gridPosition.copy(targetTile.position);
         } else {
-          console.error(
-            "Could not swap: The other unit is missing a CharacterRigidbody."
+          console.log(
+            "%c[SWAP FAILED]: Other unit has no rigidbody. Reverting.",
+            "color: orange;"
           );
+          body.setPosition(draggableUnit.gridPosition);
         }
       } else {
-        console.log("Dropped back on itself: Reverting to original position.");
-        // Dropped back on itself
+        console.log(
+          "%c[DROP IGNORED]: Dropped on self. Reverting.",
+          "color: yellow;"
+        );
         body.setPosition(draggableUnit.gridPosition);
       }
 
-      console.log("Finished onMouseUp logic. Clearing draggable GameObject.");
       draggableGORef.current = null;
     };
 
-    console.log("Setting up raycaster event listeners for setup phase.");
     window.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
 
     return () => {
-      console.log("Cleaning up raycaster event listeners.");
       window.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);

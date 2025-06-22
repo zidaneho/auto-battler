@@ -27,6 +27,9 @@ export class GridTile {
     this.position = position.clone();
     this.occupiedUnit = null;
   }
+  toString() : string {
+    return "["+this.row.toString() +" "+ this.col.toString()+"]";
+  }
 }
 
 export function getMaxUnits(grid: GridTile[][]): number {

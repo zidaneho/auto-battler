@@ -10,6 +10,7 @@ import { useModelStore } from "@/components/ModelStore"; // Adjust path
 import { UnitStats } from "./UnitStats"; // Adjust path
 import { CharacterRigidbody } from "../physics/CharacterRigidbody"; // Adjust path
 import { UnitConstructionParams } from "./Unit";
+import { UnitPlacementSystemHandle } from "./UnitPlacementSystem";
 
 interface SpawnSingleUnitParams {
   blueprint: UnitBlueprint;
@@ -39,6 +40,7 @@ export const spawnSingleUnit = ({
     );
     return null;
   }
+
 
   // 1. Assemble the complete construction params object here
   const constructionParams: UnitConstructionParams = {
@@ -74,6 +76,8 @@ export const spawnSingleUnit = ({
   );
 
   if (unitGameObject) {
+
+    
     const unitComponent = unitGameObject.getComponent(blueprint.unitClass);
     if (unitComponent) {
       const rb = unitGameObject.getComponent(CharacterRigidbody);

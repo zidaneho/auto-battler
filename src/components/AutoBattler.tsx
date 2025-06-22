@@ -106,9 +106,7 @@ const AutoBattler: React.FC = () => {
     if (newState.isGameActive !== undefined)
       setIsGameActive(newState.isGameActive);
     if (newState.playerGold !== undefined) {
-      setPlayer((p) =>
-        p ? { ...p, gold: newState.playerGold } : undefined
-      );
+      setPlayer((p) => (p ? { ...p, gold: newState.playerGold } : undefined));
     }
   }, []);
 
