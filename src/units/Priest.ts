@@ -128,7 +128,7 @@ export class Priest extends Unit {
 
   healTarget(target: Unit) {
     if (target.healthComponent != null && target.healthComponent.isAlive()) {
-      target.healthComponent.heal(this.healthComponent.healingPower);
+      target.healthComponent.heal(this.attackComponent.magAttack);
     }
   }
 

@@ -26,7 +26,6 @@ export class StatRefreshSystem {
     let critChance = e.stats.baseCritChance;
     let range = e.stats.baseAttackRange;
     let moveSpeed = e.stats.baseMoveSpeed;
-    let healingPower = e.stats.baseHealingPower;
     let evasion = e.stats.baseEvasion;
 
     /* 3. Aggregate modifiers */
@@ -54,7 +53,6 @@ export class StatRefreshSystem {
     e.healthComponent.maxHealth = hpMax = calc(hpMax, "maxHealth");
     e.healthComponent.armor = armor = calc(armor, "armor");
     e.healthComponent.magArmor = magArmor = calc(magArmor, "magArmor");
-    e.healthComponent.healingPower = calc(healingPower, "healingPower");
 
     e.attackComponent.attack = calc(atk, "attack");
     e.attackComponent.attackSpeed = calc(atkSpeed, "attackSpeed");

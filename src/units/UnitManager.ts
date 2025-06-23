@@ -57,12 +57,12 @@ export class UnitManager {
       params.blueprint.stats.health,
       params.blueprint.stats.armor,
       params.blueprint.stats.magArmor,
-      params.blueprint.stats.attack,
+      params.blueprint.stats.power,
+      params.blueprint.stats.magPower,
       params.blueprint.stats.attackSpeed,
       params.blueprint.stats.critChance,
       params.blueprint.stats.range,
       params.blueprint.stats.moveSpeed,
-      params.blueprint.stats.healingPower
     );
 
     const unit = gameObject.addComponent(

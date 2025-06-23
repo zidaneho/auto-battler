@@ -9,23 +9,23 @@ export const knightBlueprint: UnitBlueprint = {
   modelKey: "knight1",
   name: "Knight",
   cost: 50,
+  startCost: 1, // Added
   stats: {
-    health: 20,
-    armor: 10, // Added
-    magArmor: 5, // Added
-    attack: 5,
+    health: 25,
+    armor: 10,
+    magArmor: 5,
+    power: 5,
+    magPower:5,
     attackSpeed: 1,
-    critChance: 0.1, // Added
-    range: 1, // Added
-    moveSpeed: 1,
-    healingPower: 0,
+    critChance: 0.1,
+    range: 1,
+    moveSpeed: 3,
   },
   collider: {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
   attackDef: {
-    // Added
     name: "Knight Attack",
     description: "A strong sword swing.",
     power: 5,
@@ -38,23 +38,23 @@ export const archerBlueprint: UnitBlueprint = {
   modelKey: "archer1",
   name: "Archer",
   cost: 50,
+  startCost: 1, // Added
   stats: {
     health: 10,
-    armor: 3, // Added
-    magArmor: 2, // Added
-    attack: 3,
+    armor: 3,
+    magArmor: 2,
+    power: 2,
+    magPower: 0,
     attackSpeed: 1,
-    critChance: 0.2, // Added
-    range: 5, // Added
-    moveSpeed: 1,
-    healingPower: 0,
+    critChance: 0.2,
+    range: 5,
+    moveSpeed: 2,
   },
   collider: {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
   attackDef: {
-    // Added
     name: "Archer Shot",
     description: "A precise arrow shot.",
     power: 5,
@@ -67,23 +67,23 @@ export const priestBlueprint: UnitBlueprint = {
   modelKey: "priest1",
   name: "Priest",
   cost: 50,
+  startCost: 2, // Added
   stats: {
     health: 10,
-    armor: 2, // Added
-    magArmor: 8, // Added
-    attack: 3,
+    armor: 2,
+    magArmor: 8,
+    power: 3,
+    magPower:3,
     attackSpeed: 1,
-    critChance: 0.05, // Added
-    range: 4, // Added
+    critChance: 0.05,
+    range: 4,
     moveSpeed: 1,
-    healingPower: 4,
   },
   collider: {
     size: new THREE.Vector3(0.5, 1.5, 0.5),
     offset: new THREE.Vector3(0, 0.75, 0),
   },
   attackDef: {
-    // Added
     name: "Priest Smite",
     description: "A divine magical attack.",
     power: 5,

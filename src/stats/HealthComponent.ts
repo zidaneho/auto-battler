@@ -18,8 +18,6 @@ export class HealthComponent extends GameComponent {
   /** Flat magical mitigation. */
   magArmor: number;
 
-  healingPower: number;
-
   /** Quality-of-life flag for systems/UI. */
   isDead = false;
 
@@ -28,14 +26,12 @@ export class HealthComponent extends GameComponent {
     maxHealth: number, // blueprint value
     armor: number,
     magArmor: number,
-    healingPower: number
   ) {
     super(gameObject);
     this.health = maxHealth; // start full
     this.maxHealth = maxHealth;
     this.armor = armor;
     this.magArmor = magArmor;
-    this.healingPower = healingPower;
   }
 
   /** Generic damage entry-point. */

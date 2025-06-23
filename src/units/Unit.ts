@@ -52,6 +52,7 @@ export class Unit extends GameComponent {
 
     this.blueprint = params.blueprint;
 
+    //MAKE SURE THIS SHIT IS CLONED OR ELSE BAD THINGS
     this.gridPosition = params.spawnPosition.clone();
     //a team id of 0 means it can attack anyone
     this.teamId = params.teamId;

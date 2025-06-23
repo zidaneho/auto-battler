@@ -77,10 +77,10 @@ export const useThreeScene = (
     scene.add(directionalLight);
 
     const handleResize = () => {
-      if (!containerRef.current || !threeScene) return;
-      const { camera: cam, renderer: rend } = threeScene;
-      cam.aspect = clientWidth / clientHeight;
-      cam.updateProjectionMatrix();
+      if (!containerRef.current) return;
+      const { clientWidth, clientHeight } = containerRef.current;
+      camera.aspect = clientWidth / clientHeight;
+      camera.updateProjectionMatrix();
 
       overlayCamera.left = -clientWidth / 2;
       overlayCamera.right = clientWidth / 2;
@@ -88,7 +88,7 @@ export const useThreeScene = (
       overlayCamera.bottom = -clientHeight / 2;
       overlayCamera.updateProjectionMatrix();
 
-      rend.setSize(
+      renderer.setSize(
         containerRef.current.clientWidth,
         containerRef.current.clientHeight
       );

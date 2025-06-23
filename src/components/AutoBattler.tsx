@@ -289,6 +289,55 @@ const AutoBattler: React.FC = () => {
   const handleProceedToShop = () => {
     roundManagerRef.current?.proceedToShop();
   };
+  const handleEnlistUnit = (unitToEnlist: Unit, avaliableTile: GridTile) => {
+    if (
+      !player ||
+      !sceneRef.current ||
+      !worldRef.current ||
+      !gameObjectManagerRef.current ||
+      !unitManagerRef.current
+    )
+      return;
+    console.log(
+      `Player ${player.id} enlisted ${unitToEnlist.blueprint.name}! at (${avaliableTile.row},${avaliableTile.col}`
+    );
+
+    const newUnitGameObject = spawnSingleUnit({
+      blueprint: unitToEnlist.blueprint,
+      playerIdToSpawn: player.id,
+      scene: sceneRef.current,
+      world: worldRef.current,
+      unitManager: unitManagerRef.current,
+      gameObjectManager: gameObjectManagerRef.current,
+      position: avaliableTile.position,
+      projectileManager: projectileManagerRef.current,
+    });
+
+    if (newUnitGameObject && placementRef.current) {
+      const unit = newUnitGameObject.getComponent(Unit);
+      if (unit) {
+        placementRef.current.markOccupied(
+          avaliableTile.row,
+          avaliableTile.col,
+          unit
+        );
+      }
+      setPlayer((p) => {
+        if (!p) return undefined;
+        return {
+          ...p,
+          units: [
+            ...p.units,
+            {
+              id: newUnitGameObject.name,
+              blueprintName: unitToEnlist.blueprint.name,
+              gameObject: newUnitGameObject,
+            },
+          ],
+        };
+      });
+    }
+  };
 
   const handleEndShopPhase = () => {
     roundManagerRef.current?.endShopPhase();
@@ -318,7 +367,9 @@ const AutoBattler: React.FC = () => {
       {isGameActive && roundState === RoundState.Enlist && (
         <EnlistScene
           enemies={defeatedEnemies}
+          placementRef={placementRef}
           onProceed={handleProceedToShop}
+          onEnlist={handleEnlistUnit}
         />
       )}
 

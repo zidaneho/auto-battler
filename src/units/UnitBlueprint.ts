@@ -29,10 +29,10 @@ export type UnitBlueprintStats = {
   health: number;
   armor: number;
   magArmor: number;
-  attack: number;
+  power: number;
+  magPower:number;
   attackSpeed: number;
   critChance: number;
   range: number;
   moveSpeed: number;
-  healingPower: number;
 };

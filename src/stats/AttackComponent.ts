@@ -5,6 +5,7 @@ import { DamageType } from "./DamageType";
 
 export class AttackComponent extends GameComponent {
   attack: number;
+  magAttack:number;
   attackSpeed: number; // swings per second
   critChance: number; // 0-1
   range: number;
@@ -15,6 +16,7 @@ export class AttackComponent extends GameComponent {
   constructor(
     go: GameObject,
     attack: number,
+    magAttack:number,
     attackSpeed: number,
     critChance: number,
     range: number
@@ -24,6 +26,7 @@ export class AttackComponent extends GameComponent {
     this.attackSpeed = attackSpeed;
     this.critChance = critChance;
     this.range = range;
+    this.magAttack = magAttack;
   }
 
   getAttackReport(

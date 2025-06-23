@@ -9,11 +9,11 @@ export class UnitStats extends GameComponent {
   readonly baseMagArmor: number;
 
   readonly baseAttack: number;
+  readonly baseMagAttack: number;
   readonly baseAttackSpeed: number;
   readonly baseCritChance: number;
   readonly baseAttackRange: number;
   readonly baseMoveSpeed: number;
-  readonly baseHealingPower : number;
   readonly baseEvasion : number;
 
   level : number;
@@ -24,22 +24,22 @@ export class UnitStats extends GameComponent {
     baseArmor: number,
     baseMagArmor: number,
     baseAttack: number,
+    baseMagAttack:number,
     baseAttackSpeed: number,
     baseCritChance: number,
     baseRange: number,
     baseMoveSpeed: number,
-    baseHealingPower:number,
   ) {
     super(go);
     this.maxHealth = maxHealth;
     this.baseArmor = baseArmor;
     this.baseMagArmor = baseMagArmor;
     this.baseAttack = baseAttack;
+    this.baseMagAttack = baseMagAttack;
     this.baseAttackSpeed = baseAttackSpeed;
     this.baseCritChance = baseCritChance;
     this.baseAttackRange = baseRange;
     this.baseMoveSpeed = baseMoveSpeed;
-    this.baseHealingPower = baseHealingPower;
     this.baseEvasion = 1;
     this.level = 1;
   }
