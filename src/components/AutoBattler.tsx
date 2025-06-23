@@ -47,6 +47,7 @@ import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import t
 import { ItemBlueprint } from "@/items/ItemBlueprint";
 import ShopMenuContainer from "./ShopMenuContainer";
 import { ClickableComponent } from "@/components/ClickableComponent";
+import { BaseItem } from "@/items/BaseItem";
 
 const AutoBattler: React.FC = () => {
   // State management
@@ -194,6 +195,14 @@ const AutoBattler: React.FC = () => {
     }
   };
 
+  const handleStartFirstRound = () => {
+    if (!player || player.units.length === 0) {
+      alert("You must buy at least one unit to start the battle!");
+      return;
+    }
+    roundManagerRef.current?.startFirstRound();
+  };
+
   const startBattlePhase = useCallback(() => {
     if (!player || player.units.length === 0) {
       alert("Place some units before starting the battle!");
@@ -264,25 +273,13 @@ const AutoBattler: React.FC = () => {
   );
 
   const handlePurchaseItem = (item: ItemBlueprint, playerId: number) => {
-    if (item.type === "consumable" || item.type === "statStick") {
-      setSelectedItem(item);
-    } else {
-      setPlayer((prevPlayer) => {
-        if (!prevPlayer || prevPlayer.gold < item.cost) {
-          return prevPlayer;
-        }
-        const newPlayer = {
-          ...prevPlayer,
-          gold: prevPlayer.gold - item.cost,
-          items: [...(prevPlayer.items || []), item],
-        };
-        // apply stat changes
-        return newPlayer;
-      });
-    }
+    setSelectedItem(item);
   };
 
   const useItemOnUnit = (unit: Unit) => {
+    if (selectedItem) {
+      unit.gameObject.addComponent(BaseItem, selectedItem);
+    }
     if (
       selectedItem &&
       selectedItem.type === "consumable" &&
@@ -499,7 +496,7 @@ const AutoBattler: React.FC = () => {
         />
       )}
 
-      {isGameActive && roundState === RoundState.Setup && (
+      {isGameActive && roundState === RoundState.InitialShop && (
         <BuyMenuContainer
           players={player ? [player] : []}
           isGameActive={isGameActive}

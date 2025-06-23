@@ -3,6 +3,7 @@ import { GameComponent } from "@/ecs/GameComponent";
 import { GameObject } from "@/ecs/GameObject";
 import { AttackReport } from "./AttackReport";
 import { DamageType } from "./DamageType";
+import { Component } from "react";
 
 /** Live HP + mitigation for one entity */
 export class HealthComponent extends GameComponent {
@@ -25,7 +26,7 @@ export class HealthComponent extends GameComponent {
     gameObject: GameObject,
     maxHealth: number, // blueprint value
     armor: number,
-    magArmor: number,
+    magArmor: number
   ) {
     super(gameObject);
     this.health = maxHealth; // start full

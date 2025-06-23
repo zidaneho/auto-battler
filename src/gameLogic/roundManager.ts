@@ -14,6 +14,7 @@ import { RoundDef } from "./RoundDef";
 
 export enum RoundState {
   Inactive,
+  InitialShop,
   Setup,
   Battle,
   Shop,
@@ -72,7 +73,12 @@ export class RoundManager {
   startGame(player: Player) {
     this.player = player;
     this.currentRound = 1;
-    this.setRoundState(RoundState.Setup);
+    this.setRoundState(RoundState.InitialShop);
+  }
+  public startFirstRound(): void {
+    if (this.roundState === RoundState.InitialShop) {
+      this.setRoundState(RoundState.Setup);
+    }
   }
 
   proceedToShop() {
@@ -115,6 +121,8 @@ export class RoundManager {
 
   private onEnter(state: RoundState) {
     switch (state) {
+      case RoundState.InitialShop:
+        break;
       case RoundState.Setup:
         this.resetPhaseFlags();
         if (this.unitManager && !this.hasSpawnedEnemies) {
