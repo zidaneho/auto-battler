@@ -12,7 +12,6 @@ import { Player } from "@/types/gameTypes"; // Adjust path
 interface BuyMenuContainerProps {
   players: Player[];
   isGameActive: boolean;
-  roundState: string;
   // gridPositions: THREE.Vector3[][] | undefined; // From placementRef.current?.getGridPositions()
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>; // For getPlayerPlacementSystem and getOccupiedSlots
   maxUnitsPerPlayer: number;
@@ -26,12 +25,11 @@ interface BuyMenuContainerProps {
 const BuyMenuContainer: React.FC<BuyMenuContainerProps> = ({
   players,
   isGameActive,
-  roundState,
   placementRef,
   maxUnitsPerPlayer,
   onPurchaseUnit,
 }) => {
-  if (!isGameActive || roundState !== "setup" || !placementRef.current) {
+  if (!isGameActive ||  !placementRef.current) {
     return null;
   }
 

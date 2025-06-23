@@ -78,6 +78,7 @@ export class RoundManager {
   public startFirstRound(): void {
     if (this.roundState === RoundState.InitialShop) {
       this.setRoundState(RoundState.Setup);
+      console.log("set to setup");
     }
   }
 

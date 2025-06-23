@@ -410,7 +410,14 @@ const AutoBattler: React.FC = () => {
   // Helper to convert enum to string for UI
   const getRoundStateName = (
     state: RoundState
-  ): "setup" | "battle" | "end" | "shop" | "inactive" | "enlist" => {
+  ):
+    | "setup"
+    | "battle"
+    | "end"
+    | "shop"
+    | "inactive"
+    | "enlist"
+    | "initialshop" => {
     return RoundState[state].toLowerCase() as any;
   };
 
@@ -424,6 +431,7 @@ const AutoBattler: React.FC = () => {
         isLoaded={isLoaded}
         isGameActive={isGameActive}
         onStartGame={startGame}
+        onStartSetup={handleStartFirstRound}
         onStartBattlePhase={startBattlePhase}
         onEndShopPhase={handleEndShopPhase}
       />
@@ -500,7 +508,6 @@ const AutoBattler: React.FC = () => {
         <BuyMenuContainer
           players={player ? [player] : []}
           isGameActive={isGameActive}
-          roundState={getRoundStateName(roundState)}
           placementRef={placementRef}
           maxUnitsPerPlayer={maxUnits}
           onPurchaseUnit={(blueprint, tile) =>

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Player } from "@/types/gameTypes"; // Adjust path
+import { RoundState } from "@/gameLogic/roundManager";
 
 interface GameUIProps {
   currentRound: number;
@@ -11,6 +12,7 @@ interface GameUIProps {
   isLoaded: boolean;
   isGameActive: boolean;
   onStartGame: () => void;
+  onStartSetup: () => void;
   onStartBattlePhase: () => void;
   onEndShopPhase: () => void;
 }
@@ -23,6 +25,7 @@ const GameUI: React.FC<GameUIProps> = ({
   isLoaded,
   isGameActive,
   onStartGame,
+  onStartSetup,
   onStartBattlePhase,
   onEndShopPhase,
 }) => {
@@ -77,6 +80,23 @@ const GameUI: React.FC<GameUIProps> = ({
           }}
         >
           Start Game
+        </button>
+      )}
+      {isGameActive && roundState === "initialshop" && (
+        <button
+          onClick={onStartBattlePhase}
+          style={{
+            marginTop: "15px",
+            padding: "10px 18px",
+            fontSize: "16px",
+            backgroundColor: "#dd6b20", // Orange
+            color: "white",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Start Round 1
         </button>
       )}
       {isGameActive && roundState === "setup" && (
