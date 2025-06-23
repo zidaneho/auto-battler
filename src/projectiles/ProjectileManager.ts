@@ -37,10 +37,12 @@ export class ProjectileManager {
     spawnPosition: Vector3,
     model: Model | undefined, // Use the Model interface
     speed: number,
+    acceleration: number,
     gravity: number,
     targetPos: Vector3,
     teamId: number,
-    attackReport:AttackReport
+    attackReport: AttackReport,
+    lifetime: number
   ): void {
     const gameObject = this.gameObjectManager.createGameObject(
       this.scene,
@@ -71,7 +73,9 @@ export class ProjectileManager {
       speed,
       spawnPosition,
       targetPos,
-      gravity
+      gravity,
+      lifetime, // Corrected order
+      acceleration // Corrected order
     );
     gameObject.addComponent(ProjectileDamage, teamId, attackReport);
     gameObject.addComponent(DebugMesh, rigidbody, this.scene);

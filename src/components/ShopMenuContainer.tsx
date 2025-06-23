@@ -19,6 +19,7 @@ interface ShopMenuContainerProps {
   roundState: string;
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>;
   maxUnitsPerPlayer: number;
+  currentRound : number;
   onPurchaseUnit: (
     blueprint: UnitBlueprint,
     tile: GridTile,
@@ -34,6 +35,7 @@ const ShopMenuContainer: React.FC<ShopMenuContainerProps> = ({
   roundState,
   placementRef,
   maxUnitsPerPlayer,
+  currentRound,
   onPurchaseUnit,
   onPurchaseItem,
   onReroll,
@@ -56,7 +58,7 @@ const ShopMenuContainer: React.FC<ShopMenuContainerProps> = ({
           {/* Row 1: Items */}
           <ShopMenu
             player={player}
-            items={allItemBlueprints.slice(0, 3)} // Show first 3 items
+            currentRound={currentRound} // Show first 3 items
             onPurchase={(item) => onPurchaseItem(item, player.id)}
           />
           {/* Row 2: Random Items */}

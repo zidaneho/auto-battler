@@ -41,11 +41,12 @@ import { spawnSingleUnit } from "@/units/unitActions";
 
 // Types
 import { Player } from "@/types/gameTypes";
-import { useRaycaster } from "@/hooks/useRaycaster";
+import { getNormalizedCoordinates, useRaycaster } from "@/hooks/useRaycaster";
 import { Unit } from "@/units/Unit";
 import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import the class and enum
 import { ItemBlueprint } from "@/items/ItemBlueprint";
 import ShopMenuContainer from "./ShopMenuContainer";
+import { ClickableComponent } from "@/components/ClickableComponent";
 
 const AutoBattler: React.FC = () => {
   // State management
@@ -57,6 +58,7 @@ const AutoBattler: React.FC = () => {
     useState<keyof typeof globalModelList>("prototypeMap");
   const [isGameActive, setIsGameActive] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ItemBlueprint | null>(null);
 
   // Refs for systems and components
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -262,18 +264,83 @@ const AutoBattler: React.FC = () => {
   );
 
   const handlePurchaseItem = (item: ItemBlueprint, playerId: number) => {
-    setPlayer((prevPlayer) => {
-      if (!prevPlayer || prevPlayer.gold < item.cost) {
-        return prevPlayer;
-      }
-      const newPlayer = {
-        ...prevPlayer,
-        gold: prevPlayer.gold - item.cost,
-        items: [...(prevPlayer.items || []), item],
-      };
-      return newPlayer;
-    });
+    if (item.type === "consumable" || item.type === "statStick") {
+      setSelectedItem(item);
+    } else {
+      setPlayer((prevPlayer) => {
+        if (!prevPlayer || prevPlayer.gold < item.cost) {
+          return prevPlayer;
+        }
+        const newPlayer = {
+          ...prevPlayer,
+          gold: prevPlayer.gold - item.cost,
+          items: [...(prevPlayer.items || []), item],
+        };
+        // apply stat changes
+        return newPlayer;
+      });
+    }
   };
+
+  const useItemOnUnit = (unit: Unit) => {
+    if (
+      selectedItem &&
+      selectedItem.type === "consumable" &&
+      selectedItem.healAmount
+    ) {
+      unit.healthComponent.heal(selectedItem.healAmount);
+      setSelectedItem(null); // Clear selected item after use
+    }
+  };
+
+  useEffect(() => {
+    if (selectedItem) {
+      const onUnitClick = (event: MouseEvent) => {
+        if (!threeScene || !worldRef.current || !gameObjectManagerRef.current)
+          return;
+
+        const pointer = getNormalizedCoordinates(
+          threeScene.renderer.domElement,
+          event
+        );
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(pointer, threeScene.camera);
+
+        const origin = raycaster.ray.origin;
+        const direction = raycaster.ray.direction;
+        const rapierRay = new RAPIER.Ray(origin, direction);
+
+        const hit = worldRef.current.castRay(rapierRay, 100, true);
+        console.log(hit);
+        if (hit?.collider) {
+          const gameObject =
+            gameObjectManagerRef.current.getGameObjectFromCollider(
+              hit.collider.handle
+            );
+
+          if (gameObject) {
+            const unit = gameObject.getComponent(Unit);
+            if (unit && unit.teamId === player?.id) {
+              useItemOnUnit(unit);
+            }
+          }
+        }
+      };
+
+      window.addEventListener("click", onUnitClick);
+      return () => {
+        window.removeEventListener("click", onUnitClick);
+      };
+    }
+  }, [
+    selectedItem,
+    threeScene,
+    worldRef,
+    gameObjectManagerRef,
+    player,
+    useItemOnUnit,
+  ]);
+
   const handleReroll = (playerId: number) => {
     setPlayer((prevPlayer) => {
       if (!prevPlayer || prevPlayer.gold < 10) {
@@ -373,19 +440,53 @@ const AutoBattler: React.FC = () => {
         />
       )}
 
-      {isGameActive && roundState === RoundState.Shop && (
-        <ShopMenuContainer
-          players={player ? [player] : []}
-          isGameActive={isGameActive}
-          roundState={getRoundStateName(roundState)}
-          placementRef={placementRef}
-          maxUnitsPerPlayer={maxUnits}
-          onPurchaseUnit={(blueprint, tile) =>
-            handlePurchaseUnit(blueprint, tile)
-          }
-          onPurchaseItem={handlePurchaseItem}
-          onReroll={handleReroll}
-        />
+      {isGameActive &&
+        roundState === RoundState.Shop &&
+        selectedItem === null && (
+          <ShopMenuContainer
+            players={player ? [player] : []}
+            isGameActive={isGameActive}
+            roundState={getRoundStateName(roundState)}
+            placementRef={placementRef}
+            maxUnitsPerPlayer={maxUnits}
+            currentRound={currentRound}
+            onPurchaseUnit={(blueprint, tile) =>
+              handlePurchaseUnit(blueprint, tile)
+            }
+            onPurchaseItem={handlePurchaseItem}
+            onReroll={handleReroll}
+          />
+        )}
+
+      {selectedItem && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 30,
+          }}
+        >
+          <p style={{ color: "white", textAlign: "center" }}>
+            Select a unit to use {selectedItem.name}
+          </p>
+          <button
+            onClick={() => setSelectedItem(null)}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#c53030",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              display: "block",
+              margin: "10px auto 0",
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
 
       {threeScene && isLoaded && (

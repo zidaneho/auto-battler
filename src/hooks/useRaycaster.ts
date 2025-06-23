@@ -12,6 +12,20 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { ThreeSceneRef } from "./useThreeScene";
 
+export const getNormalizedCoordinates = (
+  canvas: HTMLCanvasElement,
+  event: MouseEvent
+): THREE.Vector2 => {
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+
+  return new THREE.Vector2(
+    (x / rect.width) * 2 - 1,
+    -(y / rect.height) * 2 + 1
+  );
+};
+
 export const useRaycaster = (
   threeScene: ThreeSceneRef | null,
   worldRef: React.RefObject<RAPIER.World | undefined>,
@@ -27,21 +41,10 @@ export const useRaycaster = (
     const { camera, renderer } = threeScene;
     const canvas = renderer.domElement;
 
-    const getNormalizedCoordinates = (event: MouseEvent): THREE.Vector2 => {
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-
-      return new THREE.Vector2(
-        (x / rect.width) * 2 - 1,
-        -(y / rect.height) * 2 + 1
-      );
-    };
-
     const onMouseDown = (event: MouseEvent) => {
       if (!worldRef.current || !gameObjectManager.current) return;
 
-      const pointer = getNormalizedCoordinates(event);
+      const pointer = getNormalizedCoordinates(canvas, event);
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(pointer, camera);
 
@@ -69,7 +72,7 @@ export const useRaycaster = (
     const onMouseMove = (event: MouseEvent) => {
       if (!draggableGORef.current) return;
 
-      const pointer = getNormalizedCoordinates(event);
+      const pointer = getNormalizedCoordinates(canvas, event);
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(pointer, camera);
 

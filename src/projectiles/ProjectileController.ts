@@ -12,6 +12,7 @@ export class ProjectileController extends GameComponent {
   endPosition: Vector3;
   gravity: number;
   lifetime: number;
+  acceleration: number; // Now a scalar
   private velocity: Vector3 = new Vector3(0, 0, 0);
 
   constructor(
@@ -20,12 +21,14 @@ export class ProjectileController extends GameComponent {
     start: Vector3,
     target: Vector3,
     gravity: number,
-    lifetime: number
+    lifetime: number,
+    acceleration: number // Now a scalar
   ) {
     super(gameObject);
     this.speed = speed;
     this.lifetime = lifetime;
     this.rigidbody = gameObject.getComponent(Rigidbody);
+    this.acceleration = acceleration;
 
     this.startPosition = start;
     this.endPosition = target; // Optional clone if target moves
@@ -47,17 +50,22 @@ export class ProjectileController extends GameComponent {
 
     this.lifetime -= delta;
     if (this.lifetime <= 0) {
+      this.gameObject.markedForRemoval = true;
       return;
     }
 
-    // Every frame: rotate to face velocity
+    // Apply scalar acceleration
     const currentVel = this.rigidbody.body.linvel();
-    const velocityVector = new THREE.Vector3(
-      currentVel.x,
-      currentVel.y,
-      currentVel.z
-    );
+    const velocityVector = new THREE.Vector3(currentVel.x, currentVel.y, currentVel.z);
 
+    const currentSpeed = velocityVector.length();
+    const newSpeed = currentSpeed + this.acceleration * delta;
+
+    velocityVector.normalize().multiplyScalar(newSpeed);
+
+    this.rigidbody.body.setLinvel({ x: velocityVector.x, y: velocityVector.y, z: velocityVector.z }, true);
+
+    // Every frame: rotate to face velocity
     if (velocityVector.lengthSq() > 0.0001) {
       const currentPos = this.gameObject.transform.position;
       const target = new THREE.Vector3().addVectors(currentPos, velocityVector);

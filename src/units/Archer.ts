@@ -105,6 +105,7 @@ export class Archer extends Unit {
                 this.getArrowSpawnPoint(),
                 arrowModelData, // Pass the loaded Model data
                 12, // projectile speed
+                0.1,
                 GameConfig.gravityScalar,
                 targetPos,
                 this.teamId,
@@ -113,7 +114,8 @@ export class Archer extends Unit {
                   this.attackDef.accuracy,
                   this.attackDef.attackType,
                   this.target.evasion
-                )
+                ),
+                10
               );
             } else {
               console.warn("Arrow model 'arrow1' not found in store.");

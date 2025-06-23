@@ -27,6 +27,9 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const unitGroupRef = useRef<THREE.Group>(new THREE.Group());
+  const modelsRef = useRef<
+    { model: THREE.Object3D; mixer: THREE.AnimationMixer }[]
+  >([]);
 
   const unitCount = enemies.length;
   const unitSpacing = 5;
@@ -43,10 +46,54 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     }
   };
 
+  const handleEnlist = () => {
+    if (!placementRef.current || !selectedUnit) return;
+
+    const modelInfo = modelsRef.current[selectedIndex];
+    const modelData =
+      useModelStore.getState().models[selectedUnit.blueprint.modelKey];
+
+    if (modelInfo && modelData) {
+      const idleClip = Object.values(modelData.animations).find((clip) =>
+        clip.name.toLowerCase().includes("idle")
+      );
+      const deathClip = Object.values(modelData.animations).find((clip) =>
+        clip.name.toLowerCase().includes("death_a")
+      );
+
+      if (idleClip && deathClip) {
+        const idleAction = modelInfo.mixer.clipAction(idleClip);
+        idleAction.setLoop(THREE.LoopRepeat, Infinity);
+        idleAction.play();
+
+        const deathAction = modelInfo.mixer.clipAction(deathClip);
+        deathAction.crossFadeTo(idleAction, 0.5, false);
+      }
+    }
+
+    setTimeout(() => {
+      let freeTile: GridTile | null = null;
+      const gridPositions = placementRef.current!.getGridTiles();
+      for (let i = 0; i < gridPositions.length / 2; i++) {
+        for (const tile of gridPositions[i]) {
+          if (tile.occupiedUnit == null) {
+            freeTile = tile;
+            break;
+          }
+        }
+        if (freeTile) break;
+      }
+      if (freeTile) {
+        onEnlist(selectedUnit, freeTile);
+        onProceed();
+      } else {
+        console.warn("No free space for the unit!");
+      }
+    }, 1000);
+  };
+
   const selectedUnit = enemies[selectedIndex];
 
-  // --- REVISED STATS DISPLAY LOGIC ---
-  // This array explicitly defines which stats to display and in what order.
   const statsToDisplay: { key: keyof UnitStats; label: string }[] = [
     { key: "maxHealth", label: "Max Health" },
     { key: "baseAttack", label: "Attack" },
@@ -98,8 +145,8 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     while (unitGroupRef.current.children.length > 0) {
       unitGroupRef.current.remove(unitGroupRef.current.children[0]);
     }
+    modelsRef.current = [];
 
-    const models: { model: THREE.Object3D; mixer: THREE.AnimationMixer }[] = [];
     const totalWidth = (unitCount - 1) * unitSpacing;
     const startX = -totalWidth / 2;
 
@@ -110,13 +157,15 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
         const model = SkeletonUtils.clone(modelData.gltf);
         const mixer = new THREE.AnimationMixer(model);
 
-        const idleClip = Object.values(modelData.animations).find(
-          (clip) =>
-            clip.name.toLowerCase().includes("idle") ||
-            clip.name.toLowerCase().includes("idle_a")
+        const deathClip = Object.values(modelData.animations).find((clip) =>
+          clip.name.toLowerCase().includes("death_a")
         );
-        if (idleClip) {
-          mixer.clipAction(idleClip).play();
+        if (deathClip) {
+          const action = mixer.clipAction(deathClip);
+          action.setLoop(THREE.LoopOnce, 1);
+          action.clampWhenFinished = true;
+          action.time = deathClip.duration;
+          action.play();
         }
 
         model.scale.set(2.5, 2.5, 2.5);
@@ -125,7 +174,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
         model.lookAt(0, -2, 10);
 
         unitGroupRef.current.add(model);
-        models.push({ model, mixer });
+        modelsRef.current.push({ model, mixer });
       }
     });
 
@@ -136,7 +185,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
       TWEEN.update();
-      models.forEach(({ mixer }) => mixer.update(delta));
+      modelsRef.current.forEach(({ mixer }) => mixer.update(delta));
       renderer.render(scene, camera);
     };
     animate();
@@ -319,7 +368,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
                       <span style={{ fontWeight: "bold" }}>{label}: </span>
                       {String(value)}
                     </p>
-                  );  
+                  );
                 })}
             </div>
           </div>
@@ -342,26 +391,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
                 fontSize: "20px",
                 cursor: "pointer",
               }}
-              onClick={() => {
-                if (!placementRef.current || !selectedUnit) return;
-                let freeTile: GridTile | null = null;
-                const gridPositions = placementRef.current.getGridTiles();
-                for (let i = 0; i < gridPositions.length / 2; i++) {
-                  for (const tile of gridPositions[i]) {
-                    if (tile.occupiedUnit == null) {
-                      freeTile = tile;
-                      break;
-                    }
-                  }
-                  if (freeTile) break;
-                }
-                if (freeTile) {
-                  onEnlist(selectedUnit, freeTile);
-                  onProceed();
-                } else {
-                  console.warn("No free space for the unit!");
-                }
-              }}
+              onClick={handleEnlist}
             >
               Enlist Unit
             </button>

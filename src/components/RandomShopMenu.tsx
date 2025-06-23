@@ -25,7 +25,7 @@ const RandomShopMenu: React.FC<RandomShopMenuProps> = ({
   const reroll = () => {
     onReroll();
     if (player.gold < 10) return;
-    const shuffled = [...allItemBlueprints].sort(() => 0.5 - Math.random());
+    const shuffled = [...Object.values(allItemBlueprints)].sort(() => 0.5 - Math.random());
     setRandomItems(shuffled.slice(0, 3)); // Show 3 random items
   };
 
