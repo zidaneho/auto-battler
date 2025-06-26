@@ -7,7 +7,6 @@ import {
 } from "@/units/UnitPlacementSystem";
 import ShopMenu from "./ShopMenu";
 import RandomShopMenu from "./RandomShopMenu";
-import RandomUnitMenu from "./RandomUnitMenu";
 import { allItemBlueprints } from "@/items/ItemBlueprintList";
 import { ItemBlueprint } from "@/items/ItemBlueprint";
 import BuyMenu from "./BuyMenu";
@@ -19,7 +18,7 @@ interface ShopMenuContainerProps {
   roundState: string;
   placementRef: React.RefObject<UnitPlacementSystemHandle | null>;
   maxUnitsPerPlayer: number;
-  currentRound : number;
+  currentRound: number;
   onPurchaseUnit: (
     blueprint: UnitBlueprint,
     tile: GridTile,
@@ -34,19 +33,13 @@ const ShopMenuContainer: React.FC<ShopMenuContainerProps> = ({
   isGameActive,
   roundState,
   placementRef,
-  maxUnitsPerPlayer,
   currentRound,
-  onPurchaseUnit,
   onPurchaseItem,
   onReroll,
 }) => {
   if (!isGameActive || roundState !== "shop" || !placementRef.current) {
     return null;
-  }
-
-  const getPlayerPlacementSystem = (): UnitPlacementSystemHandle | null => {
-    return placementRef.current;
-  };
+  } 
 
   return (
     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col gap-4">
@@ -67,16 +60,6 @@ const ShopMenuContainer: React.FC<ShopMenuContainerProps> = ({
             onPurchase={(item) => onPurchaseItem(item, player.id)}
             onReroll={() => onReroll(player.id)}
             luck={0} // Placeholder
-          />
-          {/* Row 4: Random Units */}
-          <RandomUnitMenu
-            player={player}
-            onPurchase={(blueprint, tile) =>
-              onPurchaseUnit(blueprint, tile, player.id)
-            }
-            onReroll={() => onReroll(player.id)}
-            luck={0} // Placeholder
-            getPlacementSystem={getPlayerPlacementSystem}
           />
         </div>
       ))}

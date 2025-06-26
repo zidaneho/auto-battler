@@ -2,10 +2,11 @@ import { GameComponent } from "@/ecs/GameComponent";
 import { GameObject } from "@/ecs/GameObject";
 import { AttackReport } from "./AttackReport";
 import { DamageType } from "./DamageType";
+import { Unit } from "@/units/Unit";
 
 export class AttackComponent extends GameComponent {
   attack: number;
-  magAttack:number;
+  magAttack: number;
   attackSpeed: number; // swings per second
   critChance: number; // 0-1
   range: number;
@@ -16,7 +17,7 @@ export class AttackComponent extends GameComponent {
   constructor(
     go: GameObject,
     attack: number,
-    magAttack:number,
+    magAttack: number,
     attackSpeed: number,
     critChance: number,
     range: number
@@ -51,6 +52,6 @@ export class AttackComponent extends GameComponent {
     if (attackType === "physical") {
       damageType |= DamageType.Physical;
     }
-    return { damage, damageType, ccDuration };
+    return { damage, damageType, ccDuration, attacker: this.gameObject };
   }
 }

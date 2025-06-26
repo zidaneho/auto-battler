@@ -43,10 +43,7 @@ export class Unit extends GameComponent {
   moveSpeed: number;
   evasion: number;
 
-  constructor(
-    gameObject: GameObject,
-    params:UnitConstructionParams
-  ) {
+  constructor(gameObject: GameObject, params: UnitConstructionParams) {
     // Added GameObject type
     super(gameObject);
 
@@ -118,6 +115,9 @@ export class Unit extends GameComponent {
     );
     target.healthComponent.takeDamage(attackReport);
     this.hasAttacked = true;
+  }
+  grantExp(amount: number): void {
+    this.stats.grantExp(amount);
   }
   //a function that should be overridden by unique classes
   canHaveTarget(otherUnit: Unit): boolean {

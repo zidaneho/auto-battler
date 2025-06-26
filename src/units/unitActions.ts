@@ -9,7 +9,7 @@ import { UnitBlueprint } from "@/units/UnitBlueprint"; // Adjust path
 import { useModelStore } from "@/components/ModelStore"; // Adjust path
 import { UnitStats } from "./UnitStats"; // Adjust path
 import { CharacterRigidbody } from "../physics/CharacterRigidbody"; // Adjust path
-import { UnitConstructionParams } from "./Unit";
+import { Unit, UnitConstructionParams } from "./Unit";
 import { UnitPlacementSystemHandle } from "./UnitPlacementSystem";
 
 interface SpawnSingleUnitParams {
@@ -40,7 +40,6 @@ export const spawnSingleUnit = ({
     );
     return null;
   }
-
 
   // 1. Assemble the complete construction params object here
   const constructionParams: UnitConstructionParams = {
@@ -76,12 +75,21 @@ export const spawnSingleUnit = ({
   );
 
   if (unitGameObject) {
-
-    
     const unitComponent = unitGameObject.getComponent(blueprint.unitClass);
     if (unitComponent) {
       const rb = unitGameObject.getComponent(CharacterRigidbody);
       rb?.setPosition(position.clone());
+
+      // Set the initial rotation based on the team ID.
+      // We'll assume the player's ID is 1. Player units face "forward" (default rotation).
+      // Enemy units are rotated 180 degrees to face the player.
+      if (playerIdToSpawn !== 1) {
+        // Assuming 1 is the main player
+        unitGameObject.transform.rotation.y = (3 * Math.PI) / 2; // Rotate 180 degrees
+      } else {
+        unitGameObject.transform.rotation.y = Math.PI / 2;
+      }
+
       console.log(
         `Spawned ${
           blueprint.name

@@ -4,6 +4,7 @@ export type StatName =
   | "armor"
   | "magArmor"
   | "attack"
+  | "magAttack"
   | "attackSpeed"
   | "critChance"
   | "attackRange"

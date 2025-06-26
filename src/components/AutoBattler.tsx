@@ -47,7 +47,8 @@ import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import t
 import { ItemBlueprint } from "@/items/ItemBlueprint";
 import ShopMenuContainer from "./ShopMenuContainer";
 import { ClickableComponent } from "@/components/ClickableComponent";
-import { BaseItem } from "@/items/BaseItem";
+import { BaseItemComponent } from "@/items/BaseItemComponent";
+import RandomUnitShop from "./RandomUnitShop";
 
 const AutoBattler: React.FC = () => {
   // State management
@@ -100,7 +101,11 @@ const AutoBattler: React.FC = () => {
       if (newState.roundState === RoundState.End) {
         const enemies = roundManagerRef.current?.roundDef?.enemies;
         if (enemies) {
-          setDefeatedEnemies(enemies);
+          const enemyUnits: Unit[] = [];
+          for (const e of enemies) {
+            enemyUnits.push(e.unit);
+          }
+          setDefeatedEnemies(enemyUnits);
         }
       }
     }
@@ -196,6 +201,7 @@ const AutoBattler: React.FC = () => {
   };
 
   const handleStartFirstRound = () => {
+    console.log("hi");
     if (!player || player.units.length === 0) {
       alert("You must buy at least one unit to start the battle!");
       return;
@@ -278,7 +284,7 @@ const AutoBattler: React.FC = () => {
 
   const useItemOnUnit = (unit: Unit) => {
     if (selectedItem) {
-      unit.gameObject.addComponent(BaseItem, selectedItem);
+      unit.gameObject.addComponent(BaseItemComponent, selectedItem);
     }
     if (
       selectedItem &&
@@ -504,15 +510,11 @@ const AutoBattler: React.FC = () => {
         />
       )}
 
-      {isGameActive && roundState === RoundState.InitialShop && (
-        <BuyMenuContainer
-          players={player ? [player] : []}
-          isGameActive={isGameActive}
-          placementRef={placementRef}
-          maxUnitsPerPlayer={maxUnits}
-          onPurchaseUnit={(blueprint, tile) =>
-            handlePurchaseUnit(blueprint, tile)
-          }
+      {isGameActive && roundState === RoundState.InitialShop && player && (
+        <RandomUnitShop
+          player={player}
+          onPurchase={handlePurchaseUnit}
+          getPlacementSystem={() => placementRef.current}
         />
       )}
     </div>

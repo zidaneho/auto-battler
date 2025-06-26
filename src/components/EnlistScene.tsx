@@ -112,14 +112,15 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     if (!containerRef.current || unitCount === 0) return;
     const currentContainer = containerRef.current;
 
+    // --- Scene and Camera Setup ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x1a202c);
 
-    const aspect = currentContainer.clientWidth / currentContainer.clientHeight;
+    const targetAspect = 16 / 9;
     const viewSize = 8;
     const camera = new THREE.OrthographicCamera(
-      (-aspect * viewSize) / 2,
-      (aspect * viewSize) / 2,
+      (-targetAspect * viewSize) / 2,
+      (targetAspect * viewSize) / 2,
       viewSize / 2,
       -viewSize / 2,
       0.1,
@@ -128,13 +129,13 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     camera.position.set(0, 1.5, 10);
     camera.lookAt(0, 0, 0);
 
+    // --- Renderer Setup ---
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(
-      currentContainer.clientWidth,
-      currentContainer.clientHeight
-    );
     currentContainer.appendChild(renderer.domElement);
+    // The container needs to be a positioning context for the canvas
+    currentContainer.style.position = "relative";
 
+    // --- Lighting ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -142,6 +143,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     directionalLight.castShadow = true;
     scene.add(directionalLight);
 
+    // --- Model Loading and Positioning ---
     while (unitGroupRef.current.children.length > 0) {
       unitGroupRef.current.remove(unitGroupRef.current.children[0]);
     }
@@ -177,9 +179,39 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
         modelsRef.current.push({ model, mixer });
       }
     });
-
     scene.add(unitGroupRef.current);
 
+    // --- Resize Handling ---
+    const handleResize = () => {
+      if (!currentContainer) return;
+
+      const containerWidth = currentContainer.clientWidth;
+      const containerHeight = currentContainer.clientHeight;
+      const containerAspect = containerWidth / containerHeight;
+
+      let newWidth, newHeight;
+
+      // Fit the renderer to the container while maintaining the target aspect ratio
+      if (containerAspect > targetAspect) {
+        newHeight = containerHeight;
+        newWidth = newHeight * targetAspect;
+      } else {
+        newWidth = containerWidth;
+        newHeight = newWidth / targetAspect;
+      }
+
+      renderer.setSize(newWidth, newHeight);
+
+      // Center the canvas within the container
+      renderer.domElement.style.position = "absolute";
+      renderer.domElement.style.left = `${(containerWidth - newWidth) / 2}px`;
+      renderer.domElement.style.top = `${(containerHeight - newHeight) / 2}px`;
+    };
+
+    handleResize(); // Set initial size and position
+    window.addEventListener("resize", handleResize);
+
+    // --- Animation Loop ---
     const clock = new THREE.Clock();
     const animate = () => {
       requestAnimationFrame(animate);
@@ -190,21 +222,7 @@ const EnlistScene: React.FC<EnlistSceneProps> = ({
     };
     animate();
 
-    const handleResize = () => {
-      if (!currentContainer) return;
-      const { clientWidth, clientHeight } = currentContainer;
-
-      const newAspect = clientWidth / clientHeight;
-      camera.left = (-newAspect * viewSize) / 2;
-      camera.right = (newAspect * viewSize) / 2;
-      camera.top = viewSize / 2;
-      camera.bottom = -viewSize / 2;
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(clientWidth, clientHeight);
-    };
-    window.addEventListener("resize", handleResize);
-
+    // --- Cleanup ---
     return () => {
       window.removeEventListener("resize", handleResize);
       if (currentContainer && renderer.domElement) {

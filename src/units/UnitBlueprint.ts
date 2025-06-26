@@ -35,4 +35,5 @@ export type UnitBlueprintStats = {
   critChance: number;
   range: number;
   moveSpeed: number;
+  expValue : number;
 };

@@ -12,6 +12,7 @@ import * as RAPIER from "@dimforge/rapier3d";
 import { ProjectileDamage } from "./ProjectileDamage";
 import { Model } from "../components/ModelStore";
 import { AttackReport } from "@/stats/AttackReport";
+import { Unit } from "@/units/Unit";
 
 export class ProjectileManager {
   gameObjectManager: any; // Replace 'any' with the actual type of gameObjectManager
@@ -19,6 +20,7 @@ export class ProjectileManager {
   prefix_name: string;
   projectiles: SafeArray<GameObject>;
   physicsWorld: RAPIER.World | null;
+
 
   constructor(
     gameObjectManager: any, // Replace 'any' with the actual type
@@ -31,6 +33,28 @@ export class ProjectileManager {
     this.prefix_name = prefix_name;
     this.projectiles = new SafeArray();
     this.physicsWorld = physics_world;
+    
+  }
+
+  private handleProjectileDamage({
+    otherGO,
+    started,
+    projectileDamageComp,
+  }: {
+    otherGO: GameObject;
+    started: boolean;
+    projectileDamageComp: ProjectileDamage;
+  }) {
+    if (!started || !otherGO) return;
+    if (otherGO.tag === "unit") {
+      const otherUnit = otherGO.getComponent(Unit);
+      if (otherUnit && otherUnit.teamId !== projectileDamageComp.teamId) {
+        otherUnit.healthComponent.takeDamage(projectileDamageComp.attackReport);
+        projectileDamageComp.gameObject.markedForRemoval = true;
+      }
+    } else if (otherGO.tag === "terrain") {
+      projectileDamageComp.gameObject.markedForRemoval = true;
+    }
   }
 
   createProjectile(
@@ -79,6 +103,8 @@ export class ProjectileManager {
     );
     gameObject.addComponent(ProjectileDamage, teamId, attackReport);
     gameObject.addComponent(DebugMesh, rigidbody, this.scene);
+
+    
 
     this.projectiles.add(gameObject);
   }

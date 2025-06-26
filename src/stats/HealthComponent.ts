@@ -1,9 +1,9 @@
-// components/HealthComponent.ts
+// src/stats/HealthComponent.ts
 import { GameComponent } from "@/ecs/GameComponent";
 import { GameObject } from "@/ecs/GameObject";
 import { AttackReport } from "./AttackReport";
 import { DamageType } from "./DamageType";
-import { Component } from "react";
+import { Unit } from "@/units/Unit";
 
 /** Live HP + mitigation for one entity */
 export class HealthComponent extends GameComponent {
@@ -37,8 +37,6 @@ export class HealthComponent extends GameComponent {
 
   /** Generic damage entry-point. */
   takeDamage(damageReport: AttackReport): void {
-    console.log(damageReport.damage);
-
     if (this.isDead) return;
 
     const mitigation =
@@ -48,7 +46,24 @@ export class HealthComponent extends GameComponent {
     const final = HealthComponent.mitigate(damageReport.damage, mitigation);
 
     this.health = Math.max(0, this.health - final);
-    this.isDead = this.health === 0;
+    const justDied = !this.isDead && this.health === 0;
+
+    // Emit takeDamage event every time
+    this.gameObject.emit("takeDamage", {
+      gameObject: this.gameObject,
+      damageReport,
+    });
+
+    if (justDied) {
+      this.isDead = true;
+      // Create the payload with the unit that was killed and the attacker
+      const deathPayload = {
+        killed: this.gameObject.getComponent(Unit),
+        killer: damageReport.attacker,
+      };
+      // Emit the death event WITH the payload
+      this.gameObject.emit("death", deathPayload);
+    }
   }
 
   /** Clamp heals to maxHealth by default. */
@@ -58,6 +73,13 @@ export class HealthComponent extends GameComponent {
     this.health = allowOverheal
       ? this.health + amount
       : Math.min(this.maxHealth, this.health + amount);
+  }
+
+  revive(healthPercentage: number): void {
+    if (this.isDead) {
+      this.health = this.maxHealth * healthPercentage;
+      this.isDead = false;
+    }
   }
 
   /** Convenience helpers ------------------------------------------------ */
@@ -81,3 +103,4 @@ export class HealthComponent extends GameComponent {
     return base * (100 / (100 + Math.max(0, flatArmor)));
   }
 }
+  

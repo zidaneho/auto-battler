@@ -17,11 +17,15 @@ export class StatRefreshSystem {
       (m) => m.expiresAt === undefined || m.expiresAt > now
     );
 
+    const levelFactor = 1 + (e.stats.level - 1) * 0.1;
+
     /* 2. Start from base */
-    let hpMax = e.stats.maxHealth;
-    let armor = e.stats.baseArmor;
-    let magArmor = e.stats.baseMagArmor;
-    let atk = e.stats.baseAttack;
+    let hpMax = e.stats.maxHealth * levelFactor;
+    let armor = e.stats.baseArmor * levelFactor;
+    let magArmor = e.stats.baseMagArmor * levelFactor;
+    let atk = e.stats.baseAttack * levelFactor;
+    let magAtk = e.stats.baseMagAttack * levelFactor;
+
     let atkSpeed = e.stats.baseAttackSpeed;
     let critChance = e.stats.baseCritChance;
     let range = e.stats.baseAttackRange;
@@ -55,6 +59,7 @@ export class StatRefreshSystem {
     e.healthComponent.magArmor = magArmor = calc(magArmor, "magArmor");
 
     e.attackComponent.attack = calc(atk, "attack");
+    e.attackComponent.magAttack = calc(magAtk, "magAttack");
     e.attackComponent.attackSpeed = calc(atkSpeed, "attackSpeed");
     e.attackComponent.critChance = calc(critChance, "critChance");
     e.attackComponent.range = calc(range, "attackRange");

@@ -84,7 +84,7 @@ const GameUI: React.FC<GameUIProps> = ({
       )}
       {isGameActive && roundState === "initialshop" && (
         <button
-          onClick={onStartBattlePhase}
+          onClick={onStartSetup}
           style={{
             marginTop: "15px",
             padding: "10px 18px",

@@ -1,5 +1,3 @@
-// src/gameLogic/roundManager.ts
-
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
@@ -10,7 +8,10 @@ import { UnitManager } from "@/units/UnitManager";
 import RAPIER from "@dimforge/rapier3d";
 import * as THREE from "three";
 import { Player } from "@/types/gameTypes";
-import { RoundDef } from "./RoundDef";
+import { EnemyUnitInstance, RoundDef } from "./RoundDef";
+import { AttackReport } from "@/stats/AttackReport";
+import { Unit } from "@/units/Unit";
+import { GameObject } from "@/ecs/GameObject";
 
 export enum RoundState {
   Inactive,
@@ -27,13 +28,11 @@ const END_TIME = 5;
 const calculateBudget = (round: number) => 1 + round - 1;
 
 export class RoundManager {
-  // Public state
   roundState: RoundState = RoundState.Inactive;
   currentRound: number = 1;
   roundDef: RoundDef | null = null;
   player: Player | undefined;
 
-  // System Components (now direct members)
   private unitManager: UnitManager;
   private goManager: GameObjectManager;
   private placementSystem: UnitPlacementSystemHandle;
@@ -41,15 +40,17 @@ export class RoundManager {
   private world: RAPIER.World;
   private projManager: ProjectileManager;
 
-  // Private state
   private roundTimer: number = 0;
   private earlyWinCheckTimer: number = 0;
-
-  // Flags
   private hasSpawnedEnemies: boolean = false;
   private hasProcessedBattleOutcome: boolean = false;
 
-  // A callback to notify the UI layer of changes
+  // Store bound handlers to ensure correct unsubscription
+  private _boundEnemyDeathHandler: (payload: any) => void;
+  private _boundTakeDamageHandler: (payload: any) => void;
+  // Map to easily find the enemy instance from a unit
+  private _enemyInstanceMap: Map<Unit, EnemyUnitInstance> = new Map();
+
   private onStateChange: (newState: any) => void;
 
   constructor(
@@ -68,6 +69,67 @@ export class RoundManager {
     this.world = world;
     this.projManager = projManager;
     this.onStateChange = onStateChange;
+
+    // Bind handlers once in the constructor
+    this._boundEnemyDeathHandler = this.handleEnemyDeath.bind(this);
+    this._boundTakeDamageHandler = this.handleTakeDamage.bind(this);
+  }
+
+  private handleEnemyDeath(payload: {
+    killed: Unit;
+    killer: GameObject | null;
+  }): void {
+    const { killed, killer } = payload;
+    const killerUnit = killer?.getComponent(Unit);
+    if (!killerUnit || !this.player || killerUnit.teamId !== this.player.id) {
+      return; // Only process deaths caused by the player
+    }
+    const enemyInstance = this._enemyInstanceMap.get(killed);
+    if (!enemyInstance) return;
+
+    const expValue = enemyInstance.unit.blueprint.stats.expValue;
+    if (expValue > 0 && enemyInstance.attackers.length > 0) {
+      const expPerAttacker = expValue / enemyInstance.attackers.length;
+      console.log(
+        `Distributing ${expValue} EXP among ${enemyInstance.attackers.length} attackers.`
+      );
+
+      for (const attacker of enemyInstance.attackers) {
+        // Award experience to each attacker
+        attacker.grantExp(expPerAttacker);
+        console.log(
+          `${attacker.gameObject.name} gained ${expPerAttacker.toFixed(2)} EXP.`
+        );
+      }
+    }
+  }
+
+  private handleTakeDamage({
+    gameObject,
+    damageReport,
+  }: {
+    gameObject: GameObject;
+    damageReport: AttackReport;
+  }): void {
+    // The 'this' in an event handler refers to the object that emitted it (the GameObject)
+    // We need to get the Unit component from that GameObject.
+    if (!damageReport.attacker) {
+      return;
+    }
+    const enemyUnit = gameObject.getComponent(Unit);
+    if (!enemyUnit) {
+      return;
+    }
+
+    const enemyInstance = this._enemyInstanceMap.get(enemyUnit);
+    const attackerUnit = damageReport.attacker.getComponent(Unit);
+    if (
+      enemyInstance &&
+      attackerUnit &&
+      !enemyInstance.attackers.includes(attackerUnit)
+    ) {
+      enemyInstance.attackers.push(attackerUnit);
+    }
   }
 
   startGame(player: Player) {
@@ -75,10 +137,10 @@ export class RoundManager {
     this.currentRound = 1;
     this.setRoundState(RoundState.InitialShop);
   }
+
   public startFirstRound(): void {
     if (this.roundState === RoundState.InitialShop) {
       this.setRoundState(RoundState.Setup);
-      console.log("set to setup");
     }
   }
 
@@ -97,6 +159,7 @@ export class RoundManager {
   private resetPhaseFlags() {
     this.hasSpawnedEnemies = false;
     this.hasProcessedBattleOutcome = false;
+    this._enemyInstanceMap.clear();
   }
 
   private determineBattleOutcome(): boolean {
@@ -127,7 +190,6 @@ export class RoundManager {
       case RoundState.Setup:
         this.resetPhaseFlags();
         if (this.unitManager && !this.hasSpawnedEnemies) {
-          // Reconstruct a 'systems' object for the external function call
           this.roundDef = spawnEnemyWave({
             budget: calculateBudget(this.currentRound),
             currentRound: this.currentRound,
@@ -139,6 +201,20 @@ export class RoundManager {
             projectileManager: this.projManager,
           });
           this.hasSpawnedEnemies = true;
+
+          if (this.roundDef.enemies) {
+            for (const enemyInstance of this.roundDef.enemies) {
+              this._enemyInstanceMap.set(enemyInstance.unit, enemyInstance);
+              enemyInstance.unit.gameObject.on(
+                "death",
+                this._boundEnemyDeathHandler
+              );
+              enemyInstance.unit.gameObject.on(
+                "takeDamage",
+                this._boundTakeDamageHandler
+              );
+            }
+          }
         }
         break;
       case RoundState.Battle:
@@ -146,9 +222,7 @@ export class RoundManager {
         this.unitManager.playAllUnits();
         break;
       case RoundState.Shop:
-        break;
       case RoundState.Enlist:
-        break;
       case RoundState.End:
         this.roundTimer = END_TIME;
         break;
@@ -161,7 +235,20 @@ export class RoundManager {
   }
 
   private onExit(state: RoundState) {
-    // Cleanup if needed when exiting a state
+    if (state === RoundState.Battle || state === RoundState.End) {
+      if (this.roundDef?.enemies) {
+        for (const enemyInstance of this.roundDef.enemies) {
+          enemyInstance.unit.gameObject.off(
+            "death",
+            this._boundEnemyDeathHandler
+          );
+          enemyInstance.unit.gameObject.off(
+            "takeDamage",
+            this._boundTakeDamageHandler
+          );
+        }
+      }
+    }
   }
 
   update(delta: number): void {
@@ -192,17 +279,22 @@ export class RoundManager {
   }
 
   private handleTimerEnd() {
+    this.onExit(this.roundState); // Manually call onExit to clean up listeners before state transition
+
     const won = this.determineBattleOutcome();
 
-    this.unitManager.units.forEach((unit) => {
-      if (unit.teamId !== this.player?.id) {
-        this.unitManager.removeUnit(unit);
-      } else {
-        const body = unit.gameObject.getComponent(CharacterRigidbody);
-        body?.setPosition(unit.gridPosition);
-      }
-      unit.enabled = false;
-    });
+    if (this.player) {
+      this.unitManager.units.forEach((unit) => {
+        if (unit.teamId === this.player?.id) {
+          const body = unit.gameObject.getComponent(CharacterRigidbody);
+          body?.setPosition(unit.gridPosition);
+          unit.enabled = false;
+        } else {
+          this.unitManager.removeUnit(unit);
+        }
+      });
+    }
+
     if (won) {
       this.currentRound++;
       const goldReward = 100 * (this.currentRound - 1);

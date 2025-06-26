@@ -134,4 +134,5 @@ export class Knight extends Unit {
     }
     this.fsm.update(delta);
   }
+  
 }

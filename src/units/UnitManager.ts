@@ -72,6 +72,7 @@ export class UnitManager {
     unit.enabled = false;
 
     this.units.add(unit);
+
     return gameObject;
   }
 
