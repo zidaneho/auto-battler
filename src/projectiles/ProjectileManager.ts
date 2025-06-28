@@ -66,7 +66,7 @@ export class ProjectileManager {
     targetPos: Vector3,
     teamId: number,
     attackReport: AttackReport,
-    lifetime: number
+    lifetime: number,
   ): void {
     const gameObject = this.gameObjectManager.createGameObject(
       this.scene,

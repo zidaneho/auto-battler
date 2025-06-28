@@ -49,7 +49,7 @@ export class Mage extends Unit {
           this.attackTimer = 0;
           this.hasAttacked = false;
           this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
-          this.skinInstance.playAnimation("attack_A");
+          this.skinInstance.playAnimation("cast_A");
           const rawClipLength = this.skinInstance.getClipLength();
           this.attackClipLength =
             rawClipLength * (1 / this.attackComponent.attackSpeed);

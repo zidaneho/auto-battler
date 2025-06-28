@@ -27,8 +27,8 @@ export class GridTile {
     this.position = position.clone();
     this.occupiedUnit = null;
   }
-  toString() : string {
-    return "["+this.row.toString() +" "+ this.col.toString()+"]";
+  toString(): string {
+    return "[" + this.row.toString() + " " + this.col.toString() + "]";
   }
 }
 
@@ -48,6 +48,7 @@ export interface UnitPlacementSystemHandle {
     tileCol: number,
     occupiedUnit: Unit | null
   ) => void; // CHANGED: Simplified signature
+  clearOccupied: () => void;
 }
 
 export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
@@ -61,8 +62,6 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
     useImperativeHandle(ref, () => ({
       getGridTiles: () => gridTilesRef.current,
       getTileSize: () => tileSize,
-
-      // --- REVISED AND MORE EFFICIENT getGrid FUNCTION ---
       getGrid(worldPosition: THREE.Vector3): GridTile | null {
         // Calculate the grid's top-left corner in world space.
         const halfSize = (gridSize * tileSize) / 2;
@@ -101,6 +100,14 @@ export const UnitPlacementSystem = forwardRef<UnitPlacementSystemHandle, Props>(
         ) {
           gridTilesRef.current[tileRow][tileCol].occupiedUnit = occupiedUnit;
         }
+      },
+      clearOccupied: () => {
+        gridTilesRef.current.forEach((row) => {
+          row.forEach((tile) => {
+            tile.occupiedUnit = null;
+          });
+        });
+        console.log("UnitPlacementSystem: All tiles marked as unoccupied.");
       },
     }));
 

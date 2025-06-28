@@ -16,15 +16,11 @@ const UnitStatPanel: React.FC<UnitStatPanelProps> = ({ unit, onClose }) => {
 
   return (
     <div style={{
-      position: 'absolute',
-      top: '10px',
-      right: '10px',
       width: '280px',
       backgroundColor: 'rgba(45, 55, 72, 0.85)',
       color: '#e2e8f0',
       padding: '15px',
       borderRadius: '8px',
-      zIndex: 20,
       fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
       fontSize: '14px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.3)',

@@ -39,6 +39,7 @@ import EnlistScene from "./EnlistScene";
 import ShopMenuContainer from "./ShopMenuContainer";
 import RandomUnitShop from "./RandomUnitShop";
 import UnitStatPanel from "./UnitStatPanel";
+import UnitItemsPanel from "./UnitItemsPanel"; // Import the new component
 
 // Game Logic
 import { spawnSingleUnit } from "@/units/unitActions";
@@ -411,10 +412,23 @@ const AutoBattler: React.FC = () => {
         onEndShopPhase={handleEndShopPhase}
       />
 
-      <UnitStatPanel
-        unit={selectedUnit}
-        onClose={() => setSelectedUnit(null)}
-      />
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          right: "10px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          zIndex: 20,
+        }}
+      >
+        <UnitStatPanel
+          unit={selectedUnit}
+          onClose={() => setSelectedUnit(null)}
+        />
+        <UnitItemsPanel unit={selectedUnit} />
+      </div>
 
       {isGameActive && roundState === RoundState.Enlist && (
         <EnlistScene

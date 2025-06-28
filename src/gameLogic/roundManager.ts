@@ -241,12 +241,11 @@ export class RoundManager {
             }
           });
         }
-        this.roundTimer = END_TIME;
         break;
       case RoundState.Shop:
-        this.roundTimer = END_TIME;
         break;
       case RoundState.Inactive:
+        this.placementSystem.clearOccupied();
         this.unitManager.clearAllUnits();
         console.log(`Game Over! You reached Round ${this.currentRound}.`);
         this.onStateChange({ isGameActive: false });
@@ -290,11 +289,7 @@ export class RoundManager {
           this.setRoundState(RoundState.End);
         }
       }
-    } else if (
-      this.roundState === RoundState.End ||
-      this.roundState === RoundState.Shop ||
-      this.roundState === RoundState.Enlist
-    ) {
+    } else if (this.roundState === RoundState.End) {
       this.roundTimer -= delta;
       if (this.roundTimer <= 0) {
         this.handleTimerEnd();
