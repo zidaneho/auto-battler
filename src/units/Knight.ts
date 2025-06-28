@@ -16,12 +16,6 @@ export class Knight extends Unit {
   ) {
     super(gameObject, params);
 
-    const deathAction = this.skinInstance.getAction("death_A");
-    if (deathAction) {
-      deathAction.clampWhenFinished = true;
-      deathAction.setLoop(THREE.LoopOnce, 1);
-    }
-
     this.damagePoint = params.model.damagePoint1!;
 
     this.fsm.addStates({

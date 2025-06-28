@@ -1,3 +1,5 @@
+// src/components/AutoBattler.tsx
+
 "use client";
 
 import React, {
@@ -9,12 +11,12 @@ import React, {
 } from "react";
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d";
+import * as TWEEN from "@tweenjs/tween.js";
 
 // ECS, Units, Physics, etc.
 import { GameObjectManager } from "@/ecs/GameObjectManager";
 import { UnitManager } from "@/units/UnitManager";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
-import { Archer } from "@/units/Archer";
 import { UnitBlueprint } from "@/units/UnitBlueprint";
 import { models as globalModelList } from "@/components/meshes/ModelList";
 import {
@@ -33,8 +35,10 @@ import { useGameLoop } from "@/hooks/useGameLoop";
 
 // UI Components
 import GameUI from "./GameUI";
-import BuyMenuContainer from "@/components/BuyMenuContainer";
 import EnlistScene from "./EnlistScene";
+import ShopMenuContainer from "./ShopMenuContainer";
+import RandomUnitShop from "./RandomUnitShop";
+import UnitStatPanel from "./UnitStatPanel";
 
 // Game Logic
 import { spawnSingleUnit } from "@/units/unitActions";
@@ -43,24 +47,20 @@ import { spawnSingleUnit } from "@/units/unitActions";
 import { Player } from "@/types/gameTypes";
 import { getNormalizedCoordinates, useRaycaster } from "@/hooks/useRaycaster";
 import { Unit } from "@/units/Unit";
-import { RoundManager, RoundState } from "@/gameLogic/roundManager"; // Import the class and enum
+import { RoundManager, RoundState } from "@/gameLogic/roundManager";
 import { ItemBlueprint } from "@/items/ItemBlueprint";
-import ShopMenuContainer from "./ShopMenuContainer";
-import { ClickableComponent } from "@/components/ClickableComponent";
 import { BaseItemComponent } from "@/items/BaseItemComponent";
-import RandomUnitShop from "./RandomUnitShop";
 
 const AutoBattler: React.FC = () => {
   // State management
   const [player, setPlayer] = useState<Player | undefined>(undefined);
   const [currentRound, setCurrentRound] = useState(1);
-  const [roundState, setRoundState] = useState<RoundState>(RoundState.Inactive); // Use the enum
+  const [roundState, setRoundState] = useState<RoundState>(RoundState.Inactive);
   const [defeatedEnemies, setDefeatedEnemies] = useState<Unit[]>([]);
-  const [currentMap, setCurrentMap] =
-    useState<keyof typeof globalModelList>("prototypeMap");
   const [isGameActive, setIsGameActive] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ItemBlueprint | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
 
   // Refs for systems and components
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +69,6 @@ const AutoBattler: React.FC = () => {
 
   const placementSystemPosition = useMemo(() => new THREE.Vector3(0, 1, 0), []);
 
-  // GLTF Models Loading Effect
   useEffect(() => {
     loadGLTFModels(() => {
       setIsLoaded(true);
@@ -77,9 +76,7 @@ const AutoBattler: React.FC = () => {
     });
   }, []);
 
-  // Setup Three.js scene and Physics World
   const { threeScene } = useThreeScene(containerRef, isLoaded);
-
   const {
     worldRef,
     gameObjectManagerRef,
@@ -87,26 +84,23 @@ const AutoBattler: React.FC = () => {
     projectileManagerRef,
   } = usePhysicsWorld(threeScene, isLoaded);
 
-  // This effect will keep the RoundManager's player reference up to date
   useEffect(() => {
     if (roundManagerRef.current && player) {
       roundManagerRef.current.player = player;
     }
-  }, [player]); // This runs every time the player state changes
+  }, [player]);
 
-  // Callback function to link RoundManager back to React state
   const onRoundStateChange = useCallback((newState: any) => {
     if (newState.roundState !== undefined) {
       setRoundState(newState.roundState);
       if (newState.roundState === RoundState.End) {
         const enemies = roundManagerRef.current?.roundDef?.enemies;
         if (enemies) {
-          const enemyUnits: Unit[] = [];
-          for (const e of enemies) {
-            enemyUnits.push(e.unit);
-          }
-          setDefeatedEnemies(enemyUnits);
+          setDefeatedEnemies(enemies.map((e) => e.unit));
         }
+      }
+      if (newState.roundState === RoundState.Battle) {
+        setSelectedUnit(null);
       }
     }
     if (newState.currentRound !== undefined)
@@ -124,43 +118,30 @@ const AutoBattler: React.FC = () => {
       unitManagerRef.current &&
       gameObjectManagerRef.current &&
       placementRef.current &&
-      sceneRef.current &&
+      threeScene?.scene &&
       worldRef.current &&
       projectileManagerRef.current
     ) {
-      console.log("setting up round manager");
       roundManagerRef.current = new RoundManager(
         unitManagerRef.current,
         gameObjectManagerRef.current,
         placementRef.current,
-        sceneRef.current,
+        threeScene.scene,
         worldRef.current,
         projectileManagerRef.current,
         onRoundStateChange
       );
     }
-  }, [
-    isLoaded,
-    onRoundStateChange,
-    worldRef,
-    unitManagerRef,
-    gameObjectManagerRef,
-    placementRef,
-    threeScene,
-    projectileManagerRef,
-  ]);
-
-  // Load Map and Collision
+  }, [isLoaded, onRoundStateChange, threeScene]);
 
   useMapManager(
     threeScene,
     worldRef,
     gameObjectManagerRef,
-    currentMap,
+    "prototypeMap",
     isLoaded
   );
 
-  // Main Game Render Loop - now calls roundManager.update()
   useGameLoop(
     threeScene,
     worldRef.current,
@@ -171,27 +152,30 @@ const AutoBattler: React.FC = () => {
     false
   );
 
+  const handleUnitSelect = (unit: Unit | null) => {
+    setSelectedUnit(unit);
+
+    // The camera panning logic that was here has been removed.
+  };
+
   useRaycaster(
     threeScene,
     worldRef,
     gameObjectManagerRef,
     roundState,
-    placementRef
+    placementRef,
+    selectedUnit,
+    handleUnitSelect
   );
 
   const maxUnits =
     placementRef.current && player
       ? getMaxUnits(placementRef.current.getGridTiles())
       : 0;
-  const sceneRef = useRef(threeScene?.scene);
-  if (threeScene) {
-    sceneRef.current = threeScene.scene;
-  }
 
-  // Game actions now delegate to the RoundManager
   const startGame = () => {
     if (isLoaded && roundManagerRef.current) {
-      const newPlayer = { id: 1, gold: 100, items: [], units: [] };
+      const newPlayer = { id: 1, gold: 10000, items: [], units: [] };
       setPlayer(newPlayer);
       roundManagerRef.current.startGame(newPlayer);
       setIsGameActive(true);
@@ -201,7 +185,6 @@ const AutoBattler: React.FC = () => {
   };
 
   const handleStartFirstRound = () => {
-    console.log("hi");
     if (!player || player.units.length === 0) {
       alert("You must buy at least one unit to start the battle!");
       return;
@@ -219,9 +202,17 @@ const AutoBattler: React.FC = () => {
 
   const handlePurchaseUnit = useCallback(
     (blueprint: UnitBlueprint, tile: GridTile): boolean => {
-      // This logic remains largely the same as it directly manipulates the player state and game objects
-      if (!player) return false;
-      if (!placementRef.current) return false;
+      if (
+        !player ||
+        !placementRef.current ||
+        !threeScene?.scene ||
+        !worldRef.current ||
+        !unitManagerRef.current ||
+        !gameObjectManagerRef.current ||
+        !projectileManagerRef.current
+      ) {
+        return false;
+      }
       if (player.gold < blueprint.cost) {
         alert("Not enough gold!");
         return false;
@@ -230,20 +221,11 @@ const AutoBattler: React.FC = () => {
         alert("Your board is full!");
         return false;
       }
-      if (
-        !sceneRef.current ||
-        !worldRef.current ||
-        !unitManagerRef.current ||
-        !gameObjectManagerRef.current ||
-        !projectileManagerRef.current
-      ) {
-        return false;
-      }
 
       const newUnitGameObject = spawnSingleUnit({
         blueprint,
         playerIdToSpawn: player.id,
-        scene: sceneRef.current,
+        scene: threeScene.scene,
         world: worldRef.current,
         unitManager: unitManagerRef.current,
         gameObjectManager: gameObjectManagerRef.current,
@@ -256,85 +238,92 @@ const AutoBattler: React.FC = () => {
         if (unit) {
           placementRef.current.markOccupied(tile.row, tile.col, unit);
         }
-        setPlayer((p) => {
-          if (!p) return undefined;
-          return {
-            ...p,
-            gold: p.gold - blueprint.cost,
-            units: [
-              ...p.units,
-              {
-                id: newUnitGameObject.name,
-                blueprintName: blueprint.name,
-                gameObject: newUnitGameObject,
-              },
-            ],
-          };
-        });
+        setPlayer((p) => ({
+          ...p!,
+          gold: p!.gold - blueprint.cost,
+          units: [
+            ...p!.units,
+            {
+              id: newUnitGameObject.name,
+              blueprintName: blueprint.name,
+              gameObject: newUnitGameObject,
+            },
+          ],
+        }));
         return true;
       }
       return false;
     },
-    [player, maxUnits]
+    [player, maxUnits, threeScene]
   );
+  const handlePurchaseItem = (item: ItemBlueprint) => {
+    if (!player) return;
 
-  const handlePurchaseItem = (item: ItemBlueprint, playerId: number) => {
+    if (player.gold < item.cost) {
+      alert("Not enough gold!");
+      return;
+    }
+
+    setPlayer((p) => ({ ...p!, gold: p!.gold - item.cost }));
     setSelectedItem(item);
   };
 
-  const useItemOnUnit = (unit: Unit) => {
-    if (selectedItem) {
-      unit.gameObject.addComponent(BaseItemComponent, selectedItem);
-    }
-    if (
-      selectedItem &&
-      selectedItem.type === "consumable" &&
-      selectedItem.healAmount
-    ) {
-      unit.healthComponent.heal(selectedItem.healAmount);
-      setSelectedItem(null); // Clear selected item after use
-    }
-  };
+  const useItemOnUnit = useCallback(
+    (unit: Unit) => {
+      if (!selectedItem) return;
+
+      if (selectedItem.type === "consumable" && selectedItem.healAmount) {
+        unit.healthComponent.heal(selectedItem.healAmount);
+        console.log(`Used ${selectedItem.name} on ${unit.blueprint.name}.`);
+      } else if (selectedItem.type === "statStick") {
+        unit.gameObject.addComponent(BaseItemComponent, selectedItem);
+        console.log(`Equipped ${selectedItem.name} on ${unit.blueprint.name}.`);
+      }
+
+      setSelectedItem(null);
+    },
+    [selectedItem]
+  );
 
   useEffect(() => {
-    if (selectedItem) {
-      const onUnitClick = (event: MouseEvent) => {
-        if (!threeScene || !worldRef.current || !gameObjectManagerRef.current)
-          return;
+    if (
+      !selectedItem ||
+      !threeScene ||
+      !worldRef.current ||
+      !gameObjectManagerRef.current
+    )
+      return;
 
-        const pointer = getNormalizedCoordinates(
-          threeScene.renderer.domElement,
-          event
-        );
-        const raycaster = new THREE.Raycaster();
-        raycaster.setFromCamera(pointer, threeScene.camera);
+    const canvas = threeScene.renderer.domElement;
 
-        const origin = raycaster.ray.origin;
-        const direction = raycaster.ray.direction;
-        const rapierRay = new RAPIER.Ray(origin, direction);
+    const onUnitClick = (event: MouseEvent) => {
+      const pointer = getNormalizedCoordinates(canvas, event);
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(pointer, threeScene.camera);
+      const rapierRay = new RAPIER.Ray(
+        raycaster.ray.origin,
+        raycaster.ray.direction
+      );
+      const hit = worldRef.current!.castRay(rapierRay, 100, true);
 
-        const hit = worldRef.current.castRay(rapierRay, 100, true);
-        console.log(hit);
-        if (hit?.collider) {
-          const gameObject =
-            gameObjectManagerRef.current.getGameObjectFromCollider(
-              hit.collider.handle
-            );
-
-          if (gameObject) {
-            const unit = gameObject.getComponent(Unit);
-            if (unit && unit.teamId === player?.id) {
-              useItemOnUnit(unit);
-            }
+      if (hit?.collider) {
+        const gameObject =
+          gameObjectManagerRef.current!.getGameObjectFromCollider(
+            hit.collider.handle
+          );
+        if (gameObject) {
+          const unit = gameObject.getComponent(Unit);
+          if (unit && unit.teamId === player?.id) {
+            useItemOnUnit(unit);
           }
         }
-      };
+      }
+    };
 
-      window.addEventListener("click", onUnitClick);
-      return () => {
-        window.removeEventListener("click", onUnitClick);
-      };
-    }
+    canvas.addEventListener("click", onUnitClick);
+    return () => {
+      canvas.removeEventListener("click", onUnitClick);
+    };
   }, [
     selectedItem,
     threeScene,
@@ -344,7 +333,7 @@ const AutoBattler: React.FC = () => {
     useItemOnUnit,
   ]);
 
-  const handleReroll = (playerId: number) => {
+  const handleReroll = () => {
     setPlayer((prevPlayer) => {
       if (!prevPlayer || prevPlayer.gold < 10) {
         return prevPlayer;
@@ -356,30 +345,27 @@ const AutoBattler: React.FC = () => {
     });
   };
 
-  const handleProceedToShop = () => {
-    roundManagerRef.current?.proceedToShop();
-  };
-  const handleEnlistUnit = (unitToEnlist: Unit, avaliableTile: GridTile) => {
+  const handleProceedToShop = () => roundManagerRef.current?.proceedToShop();
+
+  const handleEnlistUnit = (unitToEnlist: Unit, availableTile: GridTile) => {
     if (
       !player ||
-      !sceneRef.current ||
+      !threeScene?.scene ||
       !worldRef.current ||
       !gameObjectManagerRef.current ||
-      !unitManagerRef.current
+      !unitManagerRef.current ||
+      !projectileManagerRef.current
     )
       return;
-    console.log(
-      `Player ${player.id} enlisted ${unitToEnlist.blueprint.name}! at (${avaliableTile.row},${avaliableTile.col}`
-    );
 
     const newUnitGameObject = spawnSingleUnit({
       blueprint: unitToEnlist.blueprint,
       playerIdToSpawn: player.id,
-      scene: sceneRef.current,
+      scene: threeScene.scene,
       world: worldRef.current,
       unitManager: unitManagerRef.current,
       gameObjectManager: gameObjectManagerRef.current,
-      position: avaliableTile.position,
+      position: availableTile.position,
       projectileManager: projectileManagerRef.current,
     });
 
@@ -387,45 +373,28 @@ const AutoBattler: React.FC = () => {
       const unit = newUnitGameObject.getComponent(Unit);
       if (unit) {
         placementRef.current.markOccupied(
-          avaliableTile.row,
-          avaliableTile.col,
+          availableTile.row,
+          availableTile.col,
           unit
         );
       }
-      setPlayer((p) => {
-        if (!p) return undefined;
-        return {
-          ...p,
-          units: [
-            ...p.units,
-            {
-              id: newUnitGameObject.name,
-              blueprintName: unitToEnlist.blueprint.name,
-              gameObject: newUnitGameObject,
-            },
-          ],
-        };
-      });
+      setPlayer((p) => ({
+        ...p!,
+        units: [
+          ...p!.units,
+          {
+            id: newUnitGameObject.name,
+            blueprintName: unitToEnlist.blueprint.name,
+            gameObject: newUnitGameObject,
+          },
+        ],
+      }));
     }
   };
 
-  const handleEndShopPhase = () => {
-    roundManagerRef.current?.endShopPhase();
-  };
-
-  // Helper to convert enum to string for UI
-  const getRoundStateName = (
-    state: RoundState
-  ):
-    | "setup"
-    | "battle"
-    | "end"
-    | "shop"
-    | "inactive"
-    | "enlist"
-    | "initialshop" => {
-    return RoundState[state].toLowerCase() as any;
-  };
+  const handleEndShopPhase = () => roundManagerRef.current?.endShopPhase();
+  const getRoundStateName = (state: RoundState) =>
+    RoundState[state].toLowerCase() as any;
 
   return (
     <div ref={containerRef} className="game-container">
@@ -440,6 +409,11 @@ const AutoBattler: React.FC = () => {
         onStartSetup={handleStartFirstRound}
         onStartBattlePhase={startBattlePhase}
         onEndShopPhase={handleEndShopPhase}
+      />
+
+      <UnitStatPanel
+        unit={selectedUnit}
+        onClose={() => setSelectedUnit(null)}
       />
 
       {isGameActive && roundState === RoundState.Enlist && (
@@ -461,9 +435,7 @@ const AutoBattler: React.FC = () => {
             placementRef={placementRef}
             maxUnitsPerPlayer={maxUnits}
             currentRound={currentRound}
-            onPurchaseUnit={(blueprint, tile) =>
-              handlePurchaseUnit(blueprint, tile)
-            }
+            onPurchaseUnit={handlePurchaseUnit}
             onPurchaseItem={handlePurchaseItem}
             onReroll={handleReroll}
           />
@@ -477,22 +449,27 @@ const AutoBattler: React.FC = () => {
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 30,
+            textAlign: "center",
+            padding: "10px 20px",
+            backgroundColor: "rgba(0,0,0,0.7)",
+            borderRadius: "8px",
           }}
         >
-          <p style={{ color: "white", textAlign: "center" }}>
+          <p style={{ color: "white", margin: "0 0 10px 0" }}>
             Select a unit to use {selectedItem.name}
           </p>
           <button
-            onClick={() => setSelectedItem(null)}
+            onClick={() => {
+              setPlayer((p) => ({ ...p!, gold: p!.gold + selectedItem.cost }));
+              setSelectedItem(null);
+            }}
             style={{
-              padding: "10px 20px",
+              padding: "8px 16px",
               backgroundColor: "#c53030",
               color: "white",
               border: "none",
               borderRadius: "5px",
               cursor: "pointer",
-              display: "block",
-              margin: "10px auto 0",
             }}
           >
             Cancel

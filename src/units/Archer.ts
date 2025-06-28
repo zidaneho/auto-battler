@@ -19,11 +19,6 @@ export class Archer extends Unit {
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
 
-    const deathAction = this.skinInstance.getAction("death_A");
-    if (deathAction) {
-      deathAction.clampWhenFinished = true;
-      deathAction.setLoop(THREE.LoopOnce, 1);
-    }
 
     this.damagePoint = params.model.damagePoint1!;
     this.projectileManager = params.projectileManager!;
@@ -133,6 +128,7 @@ export class Archer extends Unit {
       death: {
         enter: () => {
           this.skinInstance.playAnimation("death_A");
+          this.rigidbody?.body.setEnabled(false);
         },
       },
     });

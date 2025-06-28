@@ -32,6 +32,22 @@ export function loadGLTFModels(onComplete: () => void) {
           animations: anims,
           damagePoint1: model.damagePoint1,
         });
+
+        // ---v--- ADDED LOGGING START ---v---
+
+        console.log(
+          `%c[Model Loaded]: ${key}`,
+          "color: #4CAF50; font-weight: bold;"
+        );
+
+        const animationNames = Object.keys(anims);
+        if (animationNames.length > 0) {
+          console.log("  Animations:", animationNames);
+        } else {
+          console.log("  No animations found for this model.");
+        }
+
+        // ---^--- ADDED LOGGING END ---^---
       },
       undefined,
       (err) => console.error(`Failed to load ${model.url}`, err)

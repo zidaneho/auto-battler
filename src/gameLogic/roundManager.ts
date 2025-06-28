@@ -1,3 +1,5 @@
+// src/gameLogic/roundManager.ts
+
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
 import { CharacterRigidbody } from "@/physics/CharacterRigidbody";
 import { GameObjectManager } from "@/ecs/GameObjectManager";
@@ -45,10 +47,8 @@ export class RoundManager {
   private hasSpawnedEnemies: boolean = false;
   private hasProcessedBattleOutcome: boolean = false;
 
-  // Store bound handlers to ensure correct unsubscription
   private _boundEnemyDeathHandler: (payload: any) => void;
   private _boundTakeDamageHandler: (payload: any) => void;
-  // Map to easily find the enemy instance from a unit
   private _enemyInstanceMap: Map<Unit, EnemyUnitInstance> = new Map();
 
   private onStateChange: (newState: any) => void;
@@ -70,7 +70,6 @@ export class RoundManager {
     this.projManager = projManager;
     this.onStateChange = onStateChange;
 
-    // Bind handlers once in the constructor
     this._boundEnemyDeathHandler = this.handleEnemyDeath.bind(this);
     this._boundTakeDamageHandler = this.handleTakeDamage.bind(this);
   }
@@ -82,7 +81,7 @@ export class RoundManager {
     const { killed, killer } = payload;
     const killerUnit = killer?.getComponent(Unit);
     if (!killerUnit || !this.player || killerUnit.teamId !== this.player.id) {
-      return; // Only process deaths caused by the player
+      return;
     }
     const enemyInstance = this._enemyInstanceMap.get(killed);
     if (!enemyInstance) return;
@@ -90,16 +89,8 @@ export class RoundManager {
     const expValue = enemyInstance.unit.blueprint.stats.expValue;
     if (expValue > 0 && enemyInstance.attackers.length > 0) {
       const expPerAttacker = expValue / enemyInstance.attackers.length;
-      console.log(
-        `Distributing ${expValue} EXP among ${enemyInstance.attackers.length} attackers.`
-      );
-
       for (const attacker of enemyInstance.attackers) {
-        // Award experience to each attacker
         attacker.grantExp(expPerAttacker);
-        console.log(
-          `${attacker.gameObject.name} gained ${expPerAttacker.toFixed(2)} EXP.`
-        );
       }
     }
   }
@@ -111,15 +102,9 @@ export class RoundManager {
     gameObject: GameObject;
     damageReport: AttackReport;
   }): void {
-    // The 'this' in an event handler refers to the object that emitted it (the GameObject)
-    // We need to get the Unit component from that GameObject.
-    if (!damageReport.attacker) {
-      return;
-    }
+    if (!damageReport.attacker) return;
     const enemyUnit = gameObject.getComponent(Unit);
-    if (!enemyUnit) {
-      return;
-    }
+    if (!enemyUnit) return;
 
     const enemyInstance = this._enemyInstanceMap.get(enemyUnit);
     const attackerUnit = damageReport.attacker.getComponent(Unit);
@@ -185,10 +170,22 @@ export class RoundManager {
 
   private onEnter(state: RoundState) {
     switch (state) {
-      case RoundState.InitialShop:
-        break;
       case RoundState.Setup:
         this.resetPhaseFlags();
+        // Disable rigidbodies of dead units before the next round starts
+        if (this.player) {
+          this.unitManager.units.forEach((unit) => {
+            if (
+              unit.teamId === this.player?.id &&
+              unit.healthComponent.isDead
+            ) {
+              const body = unit.gameObject.getComponent(CharacterRigidbody);
+              body?.body.setEnabled(false);
+            }
+          });
+        }
+
+        // Spawn enemies for the new round
         if (this.unitManager && !this.hasSpawnedEnemies) {
           this.roundDef = spawnEnemyWave({
             budget: calculateBudget(this.currentRound),
@@ -219,11 +216,34 @@ export class RoundManager {
         break;
       case RoundState.Battle:
         this.unitManager.setTargets();
-        this.unitManager.playAllUnits();
+        this.unitManager.enableAllUnits();
+        break;
+      case RoundState.End:
+        this.unitManager.disableAllUnits();
+        // Re-enable all player rigidbodies so they can be moved
+        if (this.player) {
+          this.unitManager.units.forEach((unit) => {
+            if (unit.teamId === this.player?.id) {
+              const body = unit.gameObject.getComponent(CharacterRigidbody);
+              body?.body.setEnabled(true);
+            }
+          });
+        }
+        this.roundTimer = END_TIME;
+        break;
+      case RoundState.Enlist:
+        // Move all units back to their grid positions now that their bodies are enabled
+        if (this.player) {
+          this.unitManager.units.forEach((unit) => {
+            if (unit.teamId === this.player?.id) {
+              const body = unit.gameObject.getComponent(CharacterRigidbody);
+              body?.setPosition(unit.gridPosition);
+            }
+          });
+        }
+        this.roundTimer = END_TIME;
         break;
       case RoundState.Shop:
-      case RoundState.Enlist:
-      case RoundState.End:
         this.roundTimer = END_TIME;
         break;
       case RoundState.Inactive:
@@ -270,7 +290,11 @@ export class RoundManager {
           this.setRoundState(RoundState.End);
         }
       }
-    } else if (this.roundState === RoundState.End) {
+    } else if (
+      this.roundState === RoundState.End ||
+      this.roundState === RoundState.Shop ||
+      this.roundState === RoundState.Enlist
+    ) {
       this.roundTimer -= delta;
       if (this.roundTimer <= 0) {
         this.handleTimerEnd();
@@ -279,32 +303,33 @@ export class RoundManager {
   }
 
   private handleTimerEnd() {
-    this.onExit(this.roundState); // Manually call onExit to clean up listeners before state transition
+    this.onExit(this.roundState);
 
-    const won = this.determineBattleOutcome();
-
-    if (this.player) {
+    // If we were in the End state, determine the outcome
+    if (this.roundState === RoundState.End) {
+      const won = this.determineBattleOutcome();
+      // Remove enemy units
       this.unitManager.units.forEach((unit) => {
-        if (unit.teamId === this.player?.id) {
-          const body = unit.gameObject.getComponent(CharacterRigidbody);
-          body?.setPosition(unit.gridPosition);
-          unit.enabled = false;
-        } else {
+        if (unit.teamId === ENEMY_TEAM_ID) {
           this.unitManager.removeUnit(unit);
         }
       });
-    }
 
-    if (won) {
-      this.currentRound++;
-      const goldReward = 100 * (this.currentRound - 1);
-      if (this.player) {
-        this.player.gold += goldReward;
-        this.onStateChange({ playerGold: this.player.gold });
+      if (won) {
+        this.currentRound++;
+        const goldReward = 100 + (this.currentRound - 1) * 10;
+        if (this.player) {
+          this.player.gold += goldReward;
+          this.onStateChange({ playerGold: this.player.gold });
+        }
+        this.setRoundState(RoundState.Enlist);
+      } else {
+        this.setRoundState(RoundState.Inactive);
       }
-      this.setRoundState(RoundState.Enlist);
-    } else {
-      this.setRoundState(RoundState.Inactive);
+    } else if (this.roundState === RoundState.Enlist) {
+      this.setRoundState(RoundState.Shop);
+    } else if (this.roundState === RoundState.Shop) {
+      this.setRoundState(RoundState.Setup);
     }
   }
 }

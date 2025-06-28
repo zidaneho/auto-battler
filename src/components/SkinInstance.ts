@@ -9,6 +9,11 @@ interface Model {
   animations: { [key: string]: THREE.AnimationClip };
 }
 
+// --- NEW ---
+// A list of animation names that should not loop by default.
+const NON_LOOPING_ANIMS = new Set(['attack_A', 'attack_B', 'death_A', 'cast_A', 'cast_B']);
+
+
 export class SkinInstance extends GameComponent {
   model: Model;
   animRoot: THREE.Object3D;
@@ -26,6 +31,14 @@ export class SkinInstance extends GameComponent {
 
     for (const clip of Object.values(this.model.animations)) {
       const action = this.mixer.clipAction(clip);
+      
+      // --- MODIFIED ---
+      // Check if the animation name is in our set of non-looping animations.
+      if (NON_LOOPING_ANIMS.has(clip.name)) {
+        action.setLoop(THREE.LoopOnce, 1);
+        action.clampWhenFinished = true; // Prevents the model from snapping back to a default pose
+      }
+      
       action.stop().reset();
       this.actions[clip.name] = action;
     }
@@ -52,12 +65,10 @@ export class SkinInstance extends GameComponent {
       return;
     }
 
-    // Only reset if explicitly requested
     if (reset) nextAction.reset();
 
-    // Enable next action and smoothly fade it in
     nextAction.enabled = true;
-    nextAction.play(); // Smooth fade-in over 0.2s
+    nextAction.play();
 
     if (prevAction && prevAction !== nextAction) {
       nextAction.reset().setEffectiveWeight(1).fadeIn(0.1);

@@ -1,4 +1,4 @@
-// src/hooks/useRaycaster.ts (Revised with better logging)
+// src/hooks/useRaycaster.ts
 
 import { ClickableComponent } from "@/components/ClickableComponent";
 import { UnitPlacementSystemHandle } from "@/units/UnitPlacementSystem";
@@ -31,39 +31,54 @@ export const useRaycaster = (
   worldRef: React.RefObject<RAPIER.World | undefined>,
   gameObjectManager: React.RefObject<GameObjectManager | undefined>,
   roundState: RoundState,
-  placementRef: React.RefObject<UnitPlacementSystemHandle | null>
+  placementRef: React.RefObject<UnitPlacementSystemHandle | null>,
+  selectedUnit: Unit | null, // NEW: currently selected unit
+  onUnitSelect: (unit: Unit | null) => void // NEW: selection handler
 ) => {
   const draggableGORef = useRef<GameObject | null>(null);
+  const isDraggingRef = useRef(false);
+  const mouseDownPos = useRef<THREE.Vector2 | null>(null);
 
   useEffect(() => {
-    if (roundState !== RoundState.Setup || !threeScene) return;
+    if (!threeScene) return;
 
     const { camera, renderer } = threeScene;
     const canvas = renderer.domElement;
 
     const onMouseDown = (event: MouseEvent) => {
+      isDraggingRef.current = false;
+      mouseDownPos.current = new THREE.Vector2(event.clientX, event.clientY);
+
+      // Only allow drag-and-drop in setup phase
+      if (
+        !(
+          roundState === RoundState.Setup ||
+          roundState === RoundState.InitialShop
+        )
+      )
+        return;
+
       if (!worldRef.current || !gameObjectManager.current) return;
 
       const pointer = getNormalizedCoordinates(canvas, event);
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(pointer, camera);
-
-      const origin = raycaster.ray.origin;
-      const direction = raycaster.ray.direction;
-      const rapierRay = new RAPIER.Ray(origin, direction);
-
+      const rapierRay = new RAPIER.Ray(
+        raycaster.ray.origin,
+        raycaster.ray.direction
+      );
       const hit = worldRef.current.castRay(rapierRay, 100, true);
 
       if (hit?.collider) {
-        const gameObject = gameObjectManager.current.getGameObjectFromCollider(
+        const go = gameObjectManager.current.getGameObjectFromCollider(
           hit.collider.handle
         );
-
-        if (gameObject) {
-          const clickable = gameObject.getComponent(ClickableComponent);
-          const unit = gameObject.getComponent(Unit);
+        if (go) {
+          const clickable = go.getComponent(ClickableComponent);
+          const unit = go.getComponent(Unit);
+          // Can only drag your own units
           if (clickable && unit?.teamId === 1) {
-            draggableGORef.current = gameObject;
+            draggableGORef.current = go;
           }
         }
       }
@@ -72,10 +87,24 @@ export const useRaycaster = (
     const onMouseMove = (event: MouseEvent) => {
       if (!draggableGORef.current) return;
 
+      // Check if mouse has moved significantly to be considered a drag
+      if (
+        mouseDownPos.current &&
+        new THREE.Vector2(event.clientX, event.clientY).distanceTo(
+          mouseDownPos.current
+        ) > 5
+      ) {
+        isDraggingRef.current = true;
+      }
+
+      if (!isDraggingRef.current) return;
+
+      // If dragging, also deselect any unit to avoid confusion
+      if (selectedUnit) onUnitSelect(null);
+
       const pointer = getNormalizedCoordinates(canvas, event);
       const raycaster = new THREE.Raycaster();
       raycaster.setFromCamera(pointer, camera);
-
       const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -1);
       const intersectionPoint = new THREE.Vector3();
 
@@ -84,131 +113,167 @@ export const useRaycaster = (
       }
     };
 
-    const onMouseUp = () => {
-      const draggableGO = draggableGORef.current;
-      if (!draggableGO || !placementRef.current) {
-        draggableGORef.current = null;
-        return;
-      }
+    const onMouseUp = (event: MouseEvent) => {
+      // If we were dragging, execute placement logic
+      if (isDraggingRef.current && draggableGORef.current) {
+        const draggableGO = draggableGORef.current;
+        const draggableUnit = draggableGO.getComponent(Unit);
+        const body = draggableGO.getComponent(CharacterRigidbody);
 
-      const draggableUnit = draggableGO.getComponent(Unit);
-      const body = draggableGO.getComponent(CharacterRigidbody);
-
-      if (!draggableUnit || !body) {
-        draggableGORef.current = null;
-        return;
-      }
-
-      const targetTile = placementRef.current.getGrid(
-        draggableGO.transform.position
-      );
-      const oldTile = placementRef.current.getGrid(draggableUnit.gridPosition);
-
-      // --- START PLACEMENT VALIDATION ---
-      let isPlacementValid = false;
-      if (targetTile) {
-        const gridTiles = placementRef.current.getGridTiles();
-        const midwayPoint = gridTiles.length / 2;
-        if (draggableUnit.teamId === 1 && targetTile.row < midwayPoint) {
-          isPlacementValid = true;
-        }
-      }
-      // --- END PLACEMENT VALIDATION ---
-
-      // --- DECISION LOGIC ---
-
-      if (!targetTile || !oldTile || !isPlacementValid) {
-        console.log(
-          "%c[DROP FAILED]: Invalid placement. Reverting.",
-          "color: red;"
-        );
-        if (!targetTile) console.log("L-> Reason: Target tile is null.");
-        if (!oldTile)
-          console.log(
-            "L-> Reason: Old tile is null (gridPosition might be corrupted)."
+        if (draggableUnit && body && placementRef.current) {
+          // ... (existing drag-and-drop placement logic)
+          const targetTile = placementRef.current.getGrid(
+            draggableGO.transform.position
           );
-        if (!isPlacementValid)
-          console.log(
-            `L-> Reason: Placement at row ${targetTile?.row} is not valid for team ${draggableUnit.teamId}.`
+          const oldTile = placementRef.current.getGrid(
+            draggableUnit.gridPosition
           );
+          const gridTiles = placementRef.current.getGridTiles();
+          const midwayPoint = gridTiles.length / 2;
+          let isPlacementValid = targetTile
+            ? targetTile.row < midwayPoint
+            : false;
 
-        body.setPosition(draggableUnit.gridPosition);
-      } else if (!targetTile.occupiedUnit) {
-        console.log(
-          `%c[DROP SUCCESS]: Moved to empty tile (${targetTile.row}, ${targetTile.col}).`,
-          "color: green;"
-        );
-
-        placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
-        placementRef.current.markOccupied(
-          targetTile.row,
-          targetTile.col,
-          draggableUnit
-        );
-        body.setPosition(targetTile.position);
-        console.log(
-          oldTile.toString(),
-          targetTile.toString(),
-          oldTile.position.toArray(),
-          targetTile.position.toArray()
-          //draggableUnit.gridPosition.toArray(),
-        );
-        draggableUnit.gridPosition.copy(targetTile.position);
-      } else if (
-        targetTile.occupiedUnit.gameObject.name !==
-        draggableUnit.gameObject.name
-      ) {
-        console.log(
-          `%c[DROP SUCCESS]: Swapping with ${targetTile.occupiedUnit.gameObject.name}.`,
-          "color: blue;"
-        );
-
-        const otherUnit = targetTile.occupiedUnit;
-        const otherUnitBody =
-          otherUnit.gameObject.getComponent(CharacterRigidbody);
-
-        if (otherUnitBody) {
-          otherUnitBody.setPosition(oldTile.position);
-          placementRef.current.markOccupied(
-            oldTile.row,
-            oldTile.col,
-            otherUnit
-          );
-          otherUnit.gridPosition.copy(oldTile.position);
-
-          body.setPosition(targetTile.position);
-          placementRef.current.markOccupied(
-            targetTile.row,
-            targetTile.col,
-            draggableUnit
-          );
-          draggableUnit.gridPosition.copy(targetTile.position);
-        } else {
-          console.log(
-            "%c[SWAP FAILED]: Other unit has no rigidbody. Reverting.",
-            "color: orange;"
-          );
-          body.setPosition(draggableUnit.gridPosition);
+          if (!targetTile || !oldTile || !isPlacementValid) {
+            body.setPosition(draggableUnit.gridPosition);
+          } else if (!targetTile.occupiedUnit) {
+            placementRef.current.markOccupied(oldTile.row, oldTile.col, null);
+            placementRef.current.markOccupied(
+              targetTile.row,
+              targetTile.col,
+              draggableUnit
+            );
+            body.setPosition(targetTile.position);
+            draggableUnit.gridPosition.copy(targetTile.position);
+          } else if (
+            targetTile.occupiedUnit.gameObject.name !==
+            draggableUnit.gameObject.name
+          ) {
+            const otherUnit = targetTile.occupiedUnit;
+            const otherUnitBody =
+              otherUnit.gameObject.getComponent(CharacterRigidbody);
+            if (otherUnitBody) {
+              otherUnitBody.setPosition(oldTile.position);
+              placementRef.current.markOccupied(
+                oldTile.row,
+                oldTile.col,
+                otherUnit
+              );
+              otherUnit.gridPosition.copy(oldTile.position);
+              body.setPosition(targetTile.position);
+              placementRef.current.markOccupied(
+                targetTile.row,
+                targetTile.col,
+                draggableUnit
+              );
+              draggableUnit.gridPosition.copy(targetTile.position);
+            }
+          } else {
+            body.setPosition(draggableUnit.gridPosition);
+          }
         }
       } else {
-        console.log(
-          "%c[DROP IGNORED]: Dropped on self. Reverting.",
-          "color: yellow;"
-        );
-        body.setPosition(draggableUnit.gridPosition);
+        // --- THIS IS A CLICK, NOT A DRAG ---
+        handleClick(event);
       }
 
+      // Reset dragging state
       draggableGORef.current = null;
+      isDraggingRef.current = false;
+      mouseDownPos.current = null;
     };
 
-    window.addEventListener("mousedown", onMouseDown);
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    const handleClick = (event: MouseEvent) => {
+      if (!worldRef.current || !gameObjectManager.current) return;
+
+      const pointer = getNormalizedCoordinates(canvas, event);
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(pointer, camera);
+      const rapierRay = new RAPIER.Ray(
+        raycaster.ray.origin,
+        raycaster.ray.direction
+      );
+      const hit = worldRef.current.castRay(rapierRay, 100, true);
+
+      const hitGo = hit
+        ? gameObjectManager.current.getGameObjectFromCollider(
+            hit.collider.handle
+          )
+        : null;
+      const hitUnit = hitGo?.getComponent(Unit);
+
+      // --- Logic for Setup Phase (Click-to-Move) ---
+      if (
+        roundState === RoundState.Setup ||
+        roundState === RoundState.InitialShop
+      ) {
+        // --- MODIFIED ---
+        // Ensure we hit a valid object that is NOT a unit before attempting to move
+        if (selectedUnit && hitGo && hitGo.tag !== "unit") {
+          const targetTile = placementRef.current?.getGrid(
+            hitGo.transform.position // No longer using '!' because we know hitGo is not null
+          );
+          const midwayPoint = placementRef.current!.getGridTiles().length / 2;
+
+          if (
+            targetTile &&
+            !targetTile.occupiedUnit &&
+            targetTile.row < midwayPoint
+          ) {
+            // Move the selected unit to the clicked empty tile
+            const oldTile = placementRef.current!.getGrid(
+              selectedUnit.gridPosition
+            );
+            if (oldTile)
+              placementRef.current!.markOccupied(
+                oldTile.row,
+                oldTile.col,
+                null
+              );
+
+            placementRef.current!.markOccupied(
+              targetTile.row,
+              targetTile.col,
+              selectedUnit
+            );
+            selectedUnit.rigidbody?.setPosition(targetTile.position);
+            selectedUnit.gridPosition.copy(targetTile.position);
+            onUnitSelect(null); // Deselect after moving
+          } else {
+            onUnitSelect(null); // Deselect if clicking invalid tile
+          }
+          return;
+        }
+      }
+
+      // --- Generic Click-to-Select Logic for all phases ---
+      if (hitUnit) {
+        if (selectedUnit === hitUnit) {
+          onUnitSelect(null); // Deselect if clicking the same unit
+        } else {
+          onUnitSelect(hitUnit); // Select the new unit
+        }
+      } else {
+        onUnitSelect(null); // Deselect if clicking on nothing
+      }
+    };
+
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseup", onMouseUp);
 
     return () => {
-      window.removeEventListener("mousedown", onMouseDown);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", onMouseUp);
     };
-  }, [threeScene, worldRef, gameObjectManager, roundState, placementRef]);
+  }, [
+    threeScene,
+    worldRef,
+    gameObjectManager,
+    roundState,
+    placementRef,
+    selectedUnit,
+    onUnitSelect,
+  ]);
 };

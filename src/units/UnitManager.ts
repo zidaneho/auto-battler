@@ -62,7 +62,7 @@ export class UnitManager {
       params.blueprint.stats.attackSpeed,
       params.blueprint.stats.critChance,
       params.blueprint.stats.range,
-      params.blueprint.stats.moveSpeed,
+      params.blueprint.stats.moveSpeed
     );
 
     const unit = gameObject.addComponent(
@@ -128,10 +128,27 @@ export class UnitManager {
     });
     this.units = new SafeArray();
   }
-  playAllUnits(): void {
+
+  /**
+   * Disables the update loop for all units.
+   * This is useful for pausing unit AI at the end of a round.
+   */
+  disableAllUnits(): void {
+    this.units.forEach((unit: Unit) => {
+      unit.enabled = false;
+    });
+    console.log("All unit behaviors disabled.");
+  }
+
+  /**
+   * Enables the update loop for all units.
+   * This is called at the start of the battle phase.
+   */
+  enableAllUnits(): void {
     this.units.forEach((unit: Unit) => {
       unit.enabled = true;
     });
+    console.log("All unit behaviors enabled.");
   }
 
   setTargets(): void {
