@@ -15,6 +15,7 @@ export type UnitBlueprint = {
     offset: THREE.Vector3;
   };
   attackDef: AttackDef;
+  useProjectiles:boolean;
 };
 
 export type AttackDef = {
@@ -23,6 +24,7 @@ export type AttackDef = {
   power: number;
   accuracy: number; //0.0-1.0
   attackType: "physical" | "magical";
+  normalizedDmgPoint : number;
 };
 
 export type UnitBlueprintStats = {

@@ -49,7 +49,9 @@ export const peasantBlueprint: UnitBlueprint = {
     power: 2,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const swordmanBlueprint: UnitBlueprint = {
@@ -80,7 +82,9 @@ export const swordmanBlueprint: UnitBlueprint = {
     power: 6,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const knightBlueprint: UnitBlueprint = {
@@ -111,7 +115,9 @@ export const knightBlueprint: UnitBlueprint = {
     power: 5,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.25,
   },
+  useProjectiles: false,
 };
 
 export const heavySwordmanBlueprint: UnitBlueprint = {
@@ -142,7 +148,9 @@ export const heavySwordmanBlueprint: UnitBlueprint = {
     power: 8,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const heavyInfantryBlueprint: UnitBlueprint = {
@@ -173,7 +181,9 @@ export const heavyInfantryBlueprint: UnitBlueprint = {
     power: 7,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const scoutBlueprint: UnitBlueprint = {
@@ -204,7 +214,9 @@ export const scoutBlueprint: UnitBlueprint = {
     power: 4,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const spearmanBlueprint: UnitBlueprint = {
@@ -235,7 +247,9 @@ export const spearmanBlueprint: UnitBlueprint = {
     power: 5,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const halberdierBlueprint: UnitBlueprint = {
@@ -266,7 +280,9 @@ export const halberdierBlueprint: UnitBlueprint = {
     power: 7,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const commanderBlueprint: UnitBlueprint = {
@@ -297,7 +313,9 @@ export const commanderBlueprint: UnitBlueprint = {
     power: 9,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const kingBlueprint: UnitBlueprint = {
@@ -328,7 +346,9 @@ export const kingBlueprint: UnitBlueprint = {
     power: 12,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 // --- RANGED BLUEPRINTS ---
@@ -361,7 +381,9 @@ export const archerBlueprint: UnitBlueprint = {
     power: 4,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.25,
   },
+  useProjectiles: true,
 };
 
 export const crossbowmanBlueprint: UnitBlueprint = {
@@ -392,7 +414,9 @@ export const crossbowmanBlueprint: UnitBlueprint = {
     power: 7,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: true,
 };
 
 // --- MAGIC & SUPPORT BLUEPRINTS ---
@@ -425,7 +449,9 @@ export const priestBlueprint: UnitBlueprint = {
     power: 4,
     accuracy: 1,
     attackType: "magical",
+    normalizedDmgPoint: 0.6,
   },
+  useProjectiles: false,
 };
 
 export const highPriestBlueprint: UnitBlueprint = {
@@ -456,7 +482,9 @@ export const highPriestBlueprint: UnitBlueprint = {
     power: 8,
     accuracy: 1,
     attackType: "magical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 export const mageBlueprint: UnitBlueprint = {
@@ -487,7 +515,9 @@ export const mageBlueprint: UnitBlueprint = {
     power: 8,
     accuracy: 1,
     attackType: "magical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: true,
 };
 
 export const paladinBlueprint: UnitBlueprint = {
@@ -518,7 +548,9 @@ export const paladinBlueprint: UnitBlueprint = {
     power: 8,
     accuracy: 1,
     attackType: "physical",
+    normalizedDmgPoint: 0.3,
   },
+  useProjectiles: false,
 };
 
 // Helper array of all blueprints

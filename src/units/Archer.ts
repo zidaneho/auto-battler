@@ -14,13 +14,11 @@ export class Archer extends Unit {
   hasAttacked: boolean = false;
   attackTimer: number = 0;
   attackClipLength: number | undefined;
-  damagePoint: number;
 
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
 
-
-    this.damagePoint = params.model.damagePoint1!;
+    this.damagePoint = params.blueprint.attackDef.normalizedDmgPoint;
     this.projectileManager = params.projectileManager!;
     this.projectileSpawnPoint = params.projectileSpawnPoint!;
 

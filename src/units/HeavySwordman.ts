@@ -6,11 +6,9 @@ import { GameObject } from "@/ecs/GameObject";
 export class HeavySwordman extends Unit {
   attackTimer: number = 0;
   attackClipLength: number | undefined;
-  damagePoint: number;
 
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
-    this.damagePoint = params.model.damagePoint1 ?? 0.3;
 
     this.fsm.addStates({
       idle: { enter: () => this.skinInstance.playAnimation("idle") },

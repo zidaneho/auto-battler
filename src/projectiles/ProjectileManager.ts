@@ -13,17 +13,21 @@ import { ProjectileDamage } from "./ProjectileDamage";
 import { Model } from "../components/ModelStore";
 import { AttackReport } from "@/stats/AttackReport";
 import { Unit } from "@/units/Unit";
+import { FireballTrailSystem } from "@/particles/FireballTrailSystem";
+import { GameObjectManager } from "@/ecs/GameObjectManager";
+import { VFXManager } from "@/particles/VFXManager";
 
 export class ProjectileManager {
-  gameObjectManager: any; // Replace 'any' with the actual type of gameObjectManager
+  gameObjectManager: GameObjectManager; // Replace 'any' with the actual type of gameObjectManager
   scene: THREE.Scene;
   prefix_name: string;
   projectiles: SafeArray<GameObject>;
   physicsWorld: RAPIER.World | null;
-
+  vfxManager: VFXManager;
 
   constructor(
-    gameObjectManager: any, // Replace 'any' with the actual type
+    gameObjectManager: GameObjectManager, // Replace 'any' with the actual type
+    vfxManager: VFXManager,
     scene: THREE.Scene,
     physics_world: RAPIER.World | null,
     prefix_name: string = "projectile"
@@ -33,28 +37,7 @@ export class ProjectileManager {
     this.prefix_name = prefix_name;
     this.projectiles = new SafeArray();
     this.physicsWorld = physics_world;
-    
-  }
-
-  private handleProjectileDamage({
-    otherGO,
-    started,
-    projectileDamageComp,
-  }: {
-    otherGO: GameObject;
-    started: boolean;
-    projectileDamageComp: ProjectileDamage;
-  }) {
-    if (!started || !otherGO) return;
-    if (otherGO.tag === "unit") {
-      const otherUnit = otherGO.getComponent(Unit);
-      if (otherUnit && otherUnit.teamId !== projectileDamageComp.teamId) {
-        otherUnit.healthComponent.takeDamage(projectileDamageComp.attackReport);
-        projectileDamageComp.gameObject.markedForRemoval = true;
-      }
-    } else if (otherGO.tag === "terrain") {
-      projectileDamageComp.gameObject.markedForRemoval = true;
-    }
+    this.vfxManager = vfxManager;
   }
 
   createProjectile(
@@ -67,6 +50,7 @@ export class ProjectileManager {
     teamId: number,
     attackReport: AttackReport,
     lifetime: number,
+    vfx?: string
   ): void {
     const gameObject = this.gameObjectManager.createGameObject(
       this.scene,
@@ -90,8 +74,10 @@ export class ProjectileManager {
       rigidbody.body,
       rigidbody.collider
     );
+    if (model) {
+      gameObject.addComponent(SkinInstance, model);
+    }
 
-    gameObject.addComponent(SkinInstance, model);
     gameObject.addComponent(
       ProjectileController,
       speed,
@@ -101,10 +87,14 @@ export class ProjectileManager {
       lifetime, // Corrected order
       acceleration // Corrected order
     );
-    gameObject.addComponent(ProjectileDamage, teamId, attackReport);
-    gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 
+    if (vfx) {
+      this.vfxManager.triggerVFX(vfx,spawnPosition,gameObject.transform);
+    }
     
+
+    gameObject.addComponent(ProjectileDamage, teamId, attackReport);
+    //gameObject.addComponent(DebugMesh, rigidbody, this.scene);
 
     this.projectiles.add(gameObject);
   }

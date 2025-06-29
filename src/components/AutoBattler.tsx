@@ -51,6 +51,7 @@ import { Unit } from "@/units/Unit";
 import { RoundManager, RoundState } from "@/gameLogic/roundManager";
 import { ItemBlueprint } from "@/items/ItemBlueprint";
 import { BaseItemComponent } from "@/items/BaseItemComponent";
+import DevShop from "./DevShop";
 
 const AutoBattler: React.FC = () => {
   // State management
@@ -83,6 +84,7 @@ const AutoBattler: React.FC = () => {
     gameObjectManagerRef,
     unitManagerRef,
     projectileManagerRef,
+    vfxManagerRef
   } = usePhysicsWorld(threeScene, isLoaded);
 
   useEffect(() => {
@@ -232,6 +234,7 @@ const AutoBattler: React.FC = () => {
         gameObjectManager: gameObjectManagerRef.current,
         position: tile.position,
         projectileManager: projectileManagerRef.current,
+        vfxManager: vfxManagerRef.current,
       });
 
       if (newUnitGameObject) {
@@ -502,7 +505,7 @@ const AutoBattler: React.FC = () => {
       )}
 
       {isGameActive && roundState === RoundState.InitialShop && player && (
-        <RandomUnitShop
+        <DevShop
           player={player}
           onPurchase={handlePurchaseUnit}
           getPlacementSystem={() => placementRef.current}

@@ -4,16 +4,15 @@ import * as THREE from "three";
 
 export interface ModelEntry {
   url: string;
-  damagePoint1?: number;
 }
 
 export const models: Record<string, ModelEntry> = {
   //UNITS
-  archer1: { url: "/models/gltf/TT_Archer.glb", damagePoint1: 0.25 },
-  knight1: { url: "/models/gltf/TT_Light_Infantry.glb", damagePoint1: 0.25 },
+  archer1: { url: "/models/gltf/TT_Archer.glb"},
+  knight1: { url: "/models/gltf/TT_Light_Infantry.glb"},
   mage1: { url: "/models/gltf/TT_Mage.glb" },
   worker1: { url: "/models/gltf/TT_Peasant.glb" },
-  priest1: { url: "/models/gltf/TT_Priest.glb", damagePoint1: 0.6 },
+  priest1: { url: "/models/gltf/TT_Priest.glb" },
   commander: { url: "/models/gltf/TT_Commander.glb" },
   crossbowman: { url: "/models/gltf/TT_Crossbowman.glb" },
   halberdier: { url: "/models/gltf/TT_Halberdier.glb" },

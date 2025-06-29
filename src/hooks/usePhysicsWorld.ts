@@ -8,6 +8,7 @@ import { UnitManager } from "../units/UnitManager"; // Adjust path
 import { ProjectileManager } from "../projectiles/ProjectileManager"; // Adjust path
 import { RoundManager } from "@/gameLogic/roundManager";
 import { ThreeSceneRef } from "./useThreeScene";
+import { VFXManager } from "@/particles/VFXManager";
 
 export const usePhysicsWorld = (
   sceneRef: ThreeSceneRef | null, // Depends on scene for ProjectileManager
@@ -17,7 +18,7 @@ export const usePhysicsWorld = (
   const gameObjectManagerRef = useRef<GameObjectManager | undefined>(undefined);
   const unitManagerRef = useRef<UnitManager | undefined>(undefined);
   const projectileManagerRef = useRef<ProjectileManager | undefined>(undefined);
-  const roundManagerRef = useRef<RoundManager | undefined>(undefined);
+  const vfxManagerRef = useRef<VFXManager | undefined>(undefined);
 
   useEffect(() => {
     if (!isLoaded || sceneRef == null) return; // Basic gate
@@ -32,16 +33,23 @@ export const usePhysicsWorld = (
       
       worldRef.current = world;
 
+      
+
       const goManager = new GameObjectManager(world);
       gameObjectManagerRef.current = goManager;
+
+      const vfxManager = new VFXManager(goManager, sceneRef.scene);
+      vfxManagerRef.current = vfxManager;
 
       unitManagerRef.current = new UnitManager(goManager);
 
       projectileManagerRef.current = new ProjectileManager(
         goManager,
+        vfxManager,
         sceneRef.scene, // Pass the actual scene object
         world
       );
+
       console.log("Physics world and managers initialized.");
     }
 
@@ -52,6 +60,7 @@ export const usePhysicsWorld = (
       gameObjectManagerRef.current = undefined;
       unitManagerRef.current = undefined;
       projectileManagerRef.current = undefined;
+      vfxManagerRef.current = undefined;
     };
   }, [isLoaded, sceneRef]); // Re-run if isLoaded or sceneRef changes
 
@@ -60,5 +69,6 @@ export const usePhysicsWorld = (
     gameObjectManagerRef,
     unitManagerRef,
     projectileManagerRef,
+    vfxManagerRef
   };
 };

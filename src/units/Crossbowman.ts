@@ -13,12 +13,10 @@ export class Crossbowman extends Unit {
   hasAttacked: boolean = false;
   attackTimer: number = 0;
   attackClipLength: number | undefined;
-  damagePoint: number;
 
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
 
-    this.damagePoint = params.model.damagePoint1 ?? 0.3;
     this.projectileManager = params.projectileManager!;
     this.projectileSpawnPoint =
       params.projectileSpawnPoint ?? new THREE.Vector3(0, 1.2, 0.5);

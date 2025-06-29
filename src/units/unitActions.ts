@@ -11,6 +11,7 @@ import { UnitStats } from "./UnitStats"; // Adjust path
 import { CharacterRigidbody } from "../physics/CharacterRigidbody"; // Adjust path
 import { Unit, UnitConstructionParams } from "./Unit";
 import { UnitPlacementSystemHandle } from "./UnitPlacementSystem";
+import { VFXManager } from "@/particles/VFXManager";
 
 interface SpawnSingleUnitParams {
   blueprint: UnitBlueprint;
@@ -21,6 +22,7 @@ interface SpawnSingleUnitParams {
   gameObjectManager: GameObjectManager;
   position: THREE.Vector3;
   projectileManager: ProjectileManager | undefined;
+  vfxManager: VFXManager | undefined;
 }
 
 export const spawnSingleUnit = ({
@@ -32,6 +34,7 @@ export const spawnSingleUnit = ({
   gameObjectManager,
   position,
   projectileManager,
+  vfxManager,
 }: SpawnSingleUnitParams): GameObject | null => {
   const modelData = useModelStore.getState().models[blueprint.modelKey];
   if (!modelData || !modelData.gltf) {
@@ -40,6 +43,7 @@ export const spawnSingleUnit = ({
     );
     return null;
   }
+  if (!vfxManager) return null;
 
   // 1. Assemble the complete construction params object here
   const constructionParams: UnitConstructionParams = {
@@ -47,10 +51,11 @@ export const spawnSingleUnit = ({
     teamId: playerIdToSpawn,
     spawnPosition: position,
     blueprint: blueprint,
+    vfxManager: vfxManager,
   };
 
   // 2. Add subclass-specific dependencies directly to the params object
-  if (blueprint.unitClass === Archer) {
+  if (blueprint.useProjectiles) {
     if (!projectileManager) {
       console.error(
         "ProjectileManager is required for Archer but not provided."

@@ -56,14 +56,21 @@ export class ProjectileController extends GameComponent {
 
     // Apply scalar acceleration
     const currentVel = this.rigidbody.body.linvel();
-    const velocityVector = new THREE.Vector3(currentVel.x, currentVel.y, currentVel.z);
+    const velocityVector = new THREE.Vector3(
+      currentVel.x,
+      currentVel.y,
+      currentVel.z
+    );
 
     const currentSpeed = velocityVector.length();
     const newSpeed = currentSpeed + this.acceleration * delta;
 
     velocityVector.normalize().multiplyScalar(newSpeed);
 
-    this.rigidbody.body.setLinvel({ x: velocityVector.x, y: velocityVector.y, z: velocityVector.z }, true);
+    this.rigidbody.body.setLinvel(
+      { x: velocityVector.x, y: velocityVector.y, z: velocityVector.z },
+      true
+    );
 
     // Every frame: rotate to face velocity
     if (velocityVector.lengthSq() > 0.0001) {
@@ -84,6 +91,10 @@ function computeBallisticVelocity(
   const horizontal = new THREE.Vector3(displacement.x, 0, displacement.z);
   const y = displacement.y;
   const xz = horizontal.length();
+
+  if (gravity === 0) {
+    return displacement.normalize().multiplyScalar(speed);
+  }
 
   const speed2 = speed * speed;
   const g = gravity;

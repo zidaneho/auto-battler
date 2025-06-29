@@ -11,12 +11,16 @@ import { BuffComponent } from "../stats/BuffComponent";
 import { AttackDef, UnitBlueprint } from "@/units/UnitBlueprint";
 import { Model } from "@/components/ModelStore";
 import { ProjectileManager } from "@/projectiles/ProjectileManager";
+import { VFXManager } from "@/particles/VFXManager";
+import { AttackReport } from "@/stats/AttackReport";
+import { DamageType } from "@/stats/DamageType";
 
 export interface UnitConstructionParams {
   model: Model;
   teamId: number;
   spawnPosition: THREE.Vector3;
   blueprint: UnitBlueprint;
+  vfxManager: VFXManager;
   // Optional params for subclasses
   projectileManager?: ProjectileManager;
   projectileSpawnPoint?: THREE.Vector3;
@@ -43,9 +47,14 @@ export class Unit extends GameComponent {
   moveSpeed: number;
   evasion: number;
 
+  damagePoint: number;
+  private vfxManager: VFXManager;
+
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     // Added GameObject type
     super(gameObject);
+
+    this.vfxManager = params.vfxManager;
 
     this.blueprint = params.blueprint;
 
@@ -89,6 +98,36 @@ export class Unit extends GameComponent {
       },
       "sleep"
     );
+
+    this.damagePoint = params.blueprint.attackDef.normalizedDmgPoint;
+
+    gameObject.on("tookDamage", this.handleDamageVFX.bind(this));
+  }
+
+  destroy(): void {
+    this.gameObject.off("tookDamage", this.handleDamageVFX.bind(this));
+  }
+
+  handleDamageVFX(report: AttackReport) {
+    if (report.damageType & DamageType.Crit) {
+      // If it was a critical hit, play a special impact effect
+      this.vfxManager.triggerVFX(
+        "critical_hit_impact",
+        this.gameObject.transform.position
+      );
+    } else if (report.damageType & DamageType.Physical) {
+      // If it was a normal physical hit, play a blood splatter
+      this.vfxManager.triggerVFX(
+        "blood_splatter",
+        this.gameObject.transform.position
+      );
+    } else {
+      // Otherwise, it was magical damage
+      this.vfxManager.triggerVFX(
+        "magic_impact",
+        this.gameObject.transform.position
+      );
+    }
   }
 
   update(delta: number): void {
@@ -128,5 +167,4 @@ export class Unit extends GameComponent {
       otherUnit.healthComponent.health > 0
     );
   }
-  
 }

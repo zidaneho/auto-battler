@@ -9,12 +9,9 @@ export class Priest extends Unit {
   hasAttacked: boolean = false;
   attackTimer: number = 0;
   attackClipLength: number | undefined;
-  damagePoint: number;
 
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
-    
-    this.damagePoint = params.model.damagePoint1!;
 
     this.fsm.addStates({
       idle: {

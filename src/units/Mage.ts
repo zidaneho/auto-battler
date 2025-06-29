@@ -8,18 +8,16 @@ import { useModelStore } from "@/components/ModelStore";
 import { GameConfig } from "@/components/GlobalsConfig";
 
 export class Mage extends Unit {
-  projectileManager: ProjectileManager;
+  projectileManager: ProjectileManager | undefined;
   projectileSpawnPoint: Vector3;
   hasAttacked: boolean = false;
   attackTimer: number = 0;
   attackClipLength: number | undefined;
-  damagePoint: number;
 
   constructor(gameObject: GameObject, params: UnitConstructionParams) {
     super(gameObject, params);
 
-    this.damagePoint = params.model.damagePoint1 ?? 0.3;
-    this.projectileManager = params.projectileManager!;
+    this.projectileManager = params.projectileManager;
     this.projectileSpawnPoint =
       params.projectileSpawnPoint ?? new THREE.Vector3(0, 1.2, 0.5);
 
@@ -49,7 +47,7 @@ export class Mage extends Unit {
           this.attackTimer = 0;
           this.hasAttacked = false;
           this.skinInstance.setAnimationSpeed(this.attackComponent.attackSpeed);
-          this.skinInstance.playAnimation("cast_A");
+          this.skinInstance.playAnimation("cast_A", true);
           const rawClipLength = this.skinInstance.getClipLength();
           this.attackClipLength =
             rawClipLength * (1 / this.attackComponent.attackSpeed);
@@ -73,7 +71,8 @@ export class Mage extends Unit {
             const projectileModel = useModelStore
               .getState()
               .getModel("mage_projectile"); // Assuming a projectile model key
-            if (projectileModel && this.target) {
+            console.log(this.projectileManager);
+            if (this.target && this.projectileManager) {
               this.projectileManager.createProjectile(
                 this.getProjectileSpawnPoint(),
                 projectileModel,
@@ -89,7 +88,8 @@ export class Mage extends Unit {
                   "magical",
                   this.target.evasion
                 ),
-                10
+                10,
+                "fireball"
               );
             }
           } else if (this.attackTimer >= this.attackClipLength) {
